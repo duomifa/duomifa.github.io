@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Guitar | Long Luo's Develop Notes]]></title>
+  <link href="http://longluo.github.io/blog/categories/guitar/atom.xml" rel="self"/>
+  <link href="http://longluo.github.io/"/>
+  <updated>2014-06-22T17:24:59+08:00</updated>
+  <id>http://longluo.github.io/</id>
+  <author>
+    <name><![CDATA[Frank Luo]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[最近几天的日志和Todos]]></title>
+    <link href="http://longluo.github.io/blog/20140120/daily_recently_and_todos/"/>
+    <updated>2014-01-20T22:07:18+08:00</updated>
+    <id>http://longluo.github.io/blog/20140120/daily_recently_and_todos</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>距离过年只有几天时间了，这2周是过年前的最后2周了。回想上一周，好像也没有完成什么事，就过去了。</p>
+
+<ul>
+<li><strong>Guitar</strong></li>
+</ul>
+
+
+<p>爬吉他音阶的时候对12345671还不太熟悉，但今天知道了1品就相当于一个半音，所以4弦空弦就相当于2，那3和4就很容易知道了，3弦空弦是5，2弦空弦是7。</p>
+
+<p>对于弦乐器来说，手指放轻松很重要，而且手指要求十分灵活，目前这一点对我来说还不是特别熟练。</p>
+
+<p>吉他目前啥和弦都忘了，和弦的理解：
+<strong>音乐的旋律，需要不同的音符，而和弦就是在每个音符根据一定的音乐原理，可以让这个音或者这段旋律更好听，所以才需要和弦。</strong></p>
+
+<!--more-->
+
+
+<ul>
+<li><strong>Android</strong></li>
+</ul>
+
+
+<p>昨天成功的将WordPress Android客户端编译Okay，目前好多代码需要看。
+WheelView, Sliding, ActionBar相关控件的实现希望自己可以好好认真看看。</p>
+
+<p>目前横跨在我目前的一座大山是VLC的Android客户端一直没有编译成功。</p>
+
+<p>希望这几天可以把主页客户端Apk完成。</p>
+
+<ul>
+<li><strong>运动</strong></li>
+</ul>
+
+
+<p>上次看了游泳转身的教学视频，大致学会了如何转身，但最近都没有去实践，不知道这周末有没有时间去实践。</p>
+
+<p>自由泳、仰泳的技术都不是很熟练，也需要好好看看教学视频，操练下。</p>
+
+<p><strong>今天的日志太拖拉了，中途聊天加接电话花了不少时间。写完睡觉。</strong></p>
+
+<h4><strong><em>Long Luo PM22:30 ~ PM23:48 @Jan. 20th, 2014 at Shenzhen, China.</em></strong></h4>
+
+<h3><a href="http://www.imlongluo.com/blog" title="Blog"> My Blog </a></h3>
+]]></content>
+  </entry>
+  
+</feed>

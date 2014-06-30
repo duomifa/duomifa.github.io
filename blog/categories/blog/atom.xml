@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Blog | Long Luo's Develop Notes]]></title>
+  <link href="http://longluo.github.io/blog/categories/blog/atom.xml" rel="self"/>
+  <link href="http://longluo.github.io/"/>
+  <updated>2014-06-22T17:24:59+08:00</updated>
+  <id>http://longluo.github.io/</id>
+  <author>
+    <name><![CDATA[Frank Luo]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Hello]]></title>
+    <link href="http://longluo.github.io/blog/20140119/hello_github_pages/"/>
+    <updated>2014-01-19T00:54:11+08:00</updated>
+    <id>http://longluo.github.io/blog/20140119/hello_github_pages</id>
+    <content type="html"><![CDATA[<h3>This is my first Github Blog on octopress.</h3>
+
+<h5>By Long Luo at Jan. 19th, 2014 at Shenzhen, China.</h5>
+
+<h3><a href="http://www.imlongluo.com/blog" title="Blog"> My Blog </a></h3>
+]]></content>
+  </entry>
+  
+</feed>

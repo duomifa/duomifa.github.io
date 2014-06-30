@@ -1,28 +1,2203 @@
----
-layout: nil
-title : Atom Feed
----
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
- 
- <title>{{ site.title }}</title>
- <link href="{{ site.production_url }}/{{ site.atom_path }}" rel="self"/>
- <link href="{{ site.production_url }}"/>
- <updated>{{ site.time | date_to_xmlschema }}</updated>
- <id>{{ site.production_url }}</id>
- <author>
-   <name>{{ site.author.name }}</name>
-   <email>{{ site.author.email }}</email>
- </author>
 
- {% for post in site.posts %}
- <entry>
-   <title>{{ post.title }}</title>
-   <link href="{{ site.production_url }}{{ post.url }}"/>
-   <updated>{{ post.date | date_to_xmlschema }}</updated>
-   <id>{{ site.production_url }}{{ post.id }}</id>
-   <content type="html">{{ post.content | xml_escape }}</content>
- </entry>
- {% endfor %}
- 
+  <title><![CDATA[Long Luo's Develop Notes]]></title>
+  <link href="http://longluo.github.io/atom.xml" rel="self"/>
+  <link href="http://longluo.github.io/"/>
+  <updated>2014-06-22T17:24:59+08:00</updated>
+  <id>http://longluo.github.io/</id>
+  <author>
+    <name><![CDATA[Frank Luo]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[[译]Android音频: 如何使用AudioTrack播放一个WAV格式文件?]]></title>
+    <link href="http://longluo.github.io/blog/20140621/android-audio-play-a-wav-file-on-an-audiotrack/"/>
+    <updated>2014-06-21T23:15:30+08:00</updated>
+    <id>http://longluo.github.io/blog/20140621/android-audio-play-a-wav-file-on-an-audiotrack</id>
+    <content type="html"><![CDATA[<h4><strong><em>翻译 By Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://mindtherobot.com/blog/580/android-audio-play-a-wav-file-on-an-audiotrack/">Android Audio: Play a WAV file on an AudioTrack</a></h4>
+
+<pre><code>译者注：
+1. 由于这是技术文章，所以有些词句使用原文，表达更准确。
+2. 由于水平有效，有些地方可能翻译的不够准确，如有不当之处，敬请批评指正.
+3. 针对某些语句，适当补充了上下文及更适合中文阅读，尽量做到信达雅。
+</code></pre>
+
+<p>如果你已经成功地了解了关于<strong>AudioTrack</strong>的<a href="http://mindtherobot.com/blog/555/android-audio-problems-hidden-limitations-and-opensl-es/" title="Android Audio: Problems, Hidden Limitations and OpenSL ES">一些话题</a>，那么你可能享受它带来的好处，例如低延迟（在STATIC(静态)模式），能够生成流式音频（在STREAM(流)模式）以及在播放之前，就能够访问和修改原始声音数据。</p>
+
+<p>不过，现在的问题是如何从源获取数据。许多应用需要使用的<strong>AudioTrack</strong>并不能简单的生成PCM音频（一个例子，比如<strong>Ethereal Dialpad</strong>或者其他类似的App）。你可能需要从文件源去加载数据，例如<em>WAV</em>或<em>MP3</em>文件。</p>
+
+<p>不要期望使用<strong>MediaPlayer</strong>，去解码<em>WAV</em>文件和<em>MP3</em>音频。虽然<strong>MediaPlayer</strong>播放这些文件非常好，但是其播放逻辑完全在Native层，同时并没有为我们提供额外选项，允许我们使用其他解码器实现我们的目的。因此，我们必须从手动地从音频文件进行解码出<em>PCM</em>。</p>
+
+<p>在这篇文章中，将会讨论<strong>WAV</strong>格式文件。而在下一课中，我们将会更进一步，讨论如何从<strong>MP3</strong>文件读取音频。</p>
+
+<h4>背景知识: 一些数字音频术语</h4>
+
+<p>如果你的App不是专门为数字音频设计，那么在继续我们的讨论之前，你可能需要先了解一些基本的缩略语。别担心，都很简单，我们不需要对此做深入挖掘。</p>
+
+<ul>
+<li><p>PCM(<strong>脉冲调制方式</strong>) &ndash; 实现一个物理音频信号变成数字化最简单方法。基本原理就是信号变成了一个数字阵列，而其中<strong>每个数字代表的是声音在特定的时间瞬间的电平</strong>也可以说是能量（振幅）。(如果这种解释在科学上可能不会很准确，那我就只能说声抱歉了）。信不信由你，你可以使用这种方法表示<strong>任何复杂</strong>的声音，而且回放出来也非常精准。在这里，我们将只会谈到线性PCM。在线性PCM中，其中阵列中的每个数字都是原始声音振幅的<strong>线性表示</strong>。在某些情况下，对数映射能够更好地表示原来的声音幅度比例情况 &ndash; 但是我们不会讨论那些情况。</p></li>
+<li><p>Sampling rate(采样率)：- 每秒你的数字声音有多少样本（声音幅度用数字表示）。样本越多，你能得到声音质量越好。目前在消费类音频系统目前使用的采样率通常是22050，44100和48000Hz/s。</p></li>
+<li><p>每个样品分辨率/采样大小/位 &ndash; 定义表示振幅数字的大小和格式。例如，如果您使用的是8位整数，你只能表达出256级的幅度，所以原来的物理波形将被简化为256个离散电平，与此同时，你将失去一些声音精度也可以说是质量。如果你使用16位，那么声音质量变得更好。事实上，大部分时间你可能会使用16位音频。其他选项包括24位，32位（这些都是Android现在不支持的），或是使用浮点数。</p></li>
+<li><p>声道 &ndash; 既可以是单声道，也可以是立体声(2个声道)，或者更多声道(但是Android不支持)。如果你想要有立体声，你需要有立体声音频，就必须要在每个声道都需要有一个独立的PCM数组，相应的信息量也会翻倍。</p></li>
+</ul>
+
+
+<!--more-->
+
+
+<p>上述定义也有助于你理解特定的格式和长度的音频缓冲区的数据量，以便提前预备缓冲区。也就是你需要一个缓冲区，以用于存储5秒长度以44100Hz采样率的立体声16-bit线性PCM数据。数据计算公式如下所示：</p>
+
+<p><code>5 sec * 44100 samples per sec * 2 bytes per sample * 2 channels = 882,000 bytes</code></p>
+
+<p>这一数额所需的内存可能会让初学者感到惊讶，因为当你往你的磁盘上存储的音频时，一个MP3文件，一个880KB的文件就可以容纳以相同的采样率和分辨率1分钟时长的音轨。这是为什么呢？因为先进的格式，比如MP3格式。因为我们大脑无法分辨识别出一些音频的内容，所以使用了很多复杂的方式在压缩的过程中去掉了这些内容。然而，大多数低等级的音频API，包括Android的<strong>AudioTrack</strong>只能接受线性<strong>PCM</strong>。这就是为什么如果我们不能把整个样品都放在内存中，我们需要将要处理的数据流，循环缓冲区和其他聪明的方式来使用音频API。</p>
+
+<p>希望这样的解释并没有让你产生困惑，现在让我们继续来实际做一些与Android上的数字音频有关的工作吧！</p>
+
+<h4>WAV文件格式</h4>
+
+<p>我们的目标是用一个<strong>InputStream</strong>，由其从一个<em>WAV</em>文件加载PCM数据，来提供原始字节数据。然后我们就可以将原始的PCM数据直接推送到使用已经正确的配置好了的<strong>AudioTrack.write</strong>，通过使用<strong><em>AudioTrack.write()</em></strong>这个API。</p>
+
+<p><em>WAV</em>文件包含一个文件头和具体数据会。我们需要读取文件头以知道诸如采样速率，分辨率等信息。另外，我们通过文件头，也可以知道此格式是否支持。<em>WAV</em>可以封装成多种格式，我们无法全部支持。也许，只是合理的采样率，分辨率和通道的线性<strong>PCM</strong>格式。</p>
+
+<p><em>WAV</em>格式的细节在互联网上都可以找到，你仅仅需要在Google上搜索下。但是，遗憾的是，我并没有搜索到一个很好的Java库来读取WAV文件，而且可以移植到<strong>Android</strong>下。因此，我自己写了一些简单的代码。</p>
+
+<p>下面这个方法就是如何读取一个WAV文件的头部：</p>
+
+<pre><code>private static final String RIFF_HEADER = "RIFF";
+private static final String WAVE_HEADER = "WAVE";
+private static final String FMT_HEADER = "fmt ";
+private static final String DATA_HEADER = "data";
+
+private static final int HEADER_SIZE = 44;
+
+private static final String CHARSET = "ASCII";
+
+/* ... */
+
+public static WavInfo readHeader(InputStream wavStream) throws IOException,
+        DecoderException {
+
+    ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
+    buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+    wavStream.read(buffer.array(), buffer.arrayOffset(), buffer.capacity());
+
+    buffer.rewind();
+    buffer.position(buffer.position() + 20);
+    int format = buffer.getShort();
+    checkFormat(format == 1, "Unsupported encoding: " + format); // 1 means
+                                                                    // Linear
+                                                                    // PCM
+    int channels = buffer.getShort();
+    checkFormat(channels == 1 || channels == 2, "Unsupported channels: "
+            + channels);
+    int rate = buffer.getInt();
+    checkFormat(rate &lt;= 48000 &amp;&amp; rate &gt;= 11025, "Unsupported rate: " + rate);
+    buffer.position(buffer.position() + 6);
+    int bits = buffer.getShort();
+    checkFormat(bits == 16, "Unsupported bits: " + bits);
+    int dataSize = 0;
+    while (buffer.getInt() != 0x61746164) { // "data" marker
+        Log.d(TAG, "Skipping non-data chunk");
+        int size = buffer.getInt();
+        wavStream.skip(size);
+
+        buffer.rewind();
+        wavStream.read(buffer.array(), buffer.arrayOffset(), 8);
+        buffer.rewind();
+    }
+    dataSize = buffer.getInt();
+    checkFormat(dataSize &gt; 0, "wrong datasize: " + dataSize);
+
+    return new WavInfo(new FormatSpec(rate, channels == 2), dataSize);
+}
+</code></pre>
+
+<p>上面的代码中，缺少的部分应该是显而易见的。正如你所看到的，仅仅支持16位，但在你可以修改代码以支持8位（<strong>AudioTrack</strong>不支持任何其他分辨率的）。</p>
+
+<p>下面这个方法，则是用来读取文件剩余的部分 &ndash; <strong>音频数据</strong>。</p>
+
+<pre><code>public static byte[] readWavPcm(WavInfo info, InputStream stream)
+        throws IOException {
+    byte[] data = new byte[info.getDataSize()];
+    stream.read(data, 0, data.length);
+    return data;
+}
+</code></pre>
+
+<p>我们读取的<strong>WavInfo</strong>结构体，包含采样率，分辨率和声道数已经足够让我们去播放我们读取的音频了。</p>
+
+<p>如果我们不需要将全部音频数据一次性放入内存中，我们可以使用一个<strong><em>InputStream</em></strong>，一点一点地读取。</p>
+
+<h4>将PCM传入AudioTrack</h4>
+
+<p>我们现在面临2种情况，新建一个适合这种格式的<strong>AudioTrack</strong>，或者使用一个已存在的<strong>AudioTrack</strong>，但是可能和我们<em>WAV</em>音频数据的格式不一致。</p>
+
+<p>在第一种情况，事情就很简单了，我们仅仅需要使用<strong>AudioTrack</strong>构造器构造一个我们已经从WAV头部对应的即可。</p>
+
+<p>第二种情况，我们就需要将我们的音频变成<strong>AudioTrack</strong>需要的目标格式。我们需要做一下几种转换方式：</p>
+
+<p>如果采样率不同，要么丢弃或复制一个样本以便和目标速率相匹配。如果分辨率是不同的，将源信号分辨率映射到目标分辨率，从16位到8位，反之亦然。如果信道不同，我们要么将立体声声道混合成一个单声道或重复单声道的数据把它变成准立体声。（请考虑将这些算法的实现放在Native层，因为Native层在做这类处理有很大的优势。）</p>
+
+<p>在其他情况下，我们已经确定格式已经匹配。我们使用<strong>AudioTrack.write()</strong>写入缓冲区，以便实现回放。</p>
+
+<p>记住，如果你使用静态模式，你需要在<strong>play()</strong>之前，新建一个包含准确的缓冲区大小的<strong>AudioTrack</strong> ，同时写入<strong>write()</strong>音频数据。而在流模式下，我们可以先使用<strong>AudioTrack</strong>的<strong>play()</strong>，然后在使用<strong>write()</strong>写入数据部分</p>
+
+<h4>总结</h4>
+
+<p>你想实现<strong><em>AudioTrack</em></strong>上播放<strong><em>WAV</em></strong>音频可能有很多原因。有时候，可能是SoundPool有尺寸限制，或是MediaPlayer会有延迟和对资源占用太高，让你考虑使用这种方式。有时候你需要修改音频或者混合音频。不管任何情况，这篇文章试图告诉你应该如何做。</p>
+
+<p>在下一篇中，我们将会讨论MP3音频，敬请期待:&ndash;)</p>
+
+<h4><strong><em>Long Luo for Part 1 created at 23:15 ~ 00: 33 June 21th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo for Part 2 created at 16:00 ~ 17: 15 June 22th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140621/android-audio-play-a-wav-file-on-an-audiotrack/'>http://longluo.github.io/blog/20140621/android-audio-play-a-wav-file-on-an-audiotrack/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android Performances Case Study]]></title>
+    <link href="http://longluo.github.io/blog/20140618/android-performances_case_study/"/>
+    <updated>2014-06-18T22:54:52+08:00</updated>
+    <id>http://longluo.github.io/blog/20140618/android-performances_case_study</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<h4><strong><em>Long Luo Created at AM12:20 ~ 13:15 @May 03rd, 2014 at Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140618/android-performances_case_study/'>http://longluo.github.io/blog/20140618/android-performances_case_study/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[如何通过笔迹分析一个人的性格?]]></title>
+    <link href="http://longluo.github.io/blog/20140611/how_to_analyse_someone_character_by_his_handwriting/"/>
+    <updated>2014-06-11T23:10:59+08:00</updated>
+    <id>http://longluo.github.io/blog/20140611/how_to_analyse_someone_character_by_his_handwriting</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<h2>字如其人</h2>
+
+<hr />
+
+<p>我个人是一直相信<code>"字如其人"</code>的，因为我相信一个人愿意去把字写的好看，一定是花了不少精力去学习，同时加以练习。TA至少具有以下几个特点：</p>
+
+<ol>
+<li><p>强力的毅力:</p>
+
+<p> 想练好字一定是需要花费不少时间去分析一些好字，具体好在什么地方，结构，字的笔画，字形，连笔，分解。然后辅以大量的练习才能达到一定的成就。这就需要TA能够静下心来去练习。</p></li>
+<li><p>足够的审美观</p>
+
+<p> 如何欣赏一副书法作品？这需要一定的艺术审美的。</p></li>
+</ol>
+
+
+<p>人们在<strong>书写字迹的时候并不单纯用字迹的手在写，而是在用大脑在书写</strong>。
+因此，一个人的字迹能够部分的反应一个人的性格，具体整理的分析方法如下：</p>
+
+<!--more-->
+
+
+<pre><code>1.在白纸上，一个人一行字迹整体向上还是向下倾斜，能够反应一个人的性格是乐观还是悲观，向上倾斜为乐观，向下为悲观
+2.字迹的大小，如果字迹偏大，说明此人乐观、自信，字迹偏小则表明此人心细、自卑、不善于表达
+3.字迹的连笔程度：字迹连笔程度越高，说明此人言行越一致，反之，则不一致
+4.字迹的棱角：即笔画中的折笔处的呈90度角的接近程度，和勾笔处的勾的尖锐的程度。字迹越棱角分明，说明此人待人接物不够圆滑，或者说意志力比较强。反之，则表明待人接物比较圆滑，意志力和自我意识不强
+5.一行字的紧密程度：就是两个字的间距，间距越小说明此人越缺乏安全感，越孤单。反之，字迹的间距越大，表明安全感好，也更加不孤单
+6.字迹向左倾，说明此人偏重于逻辑性；向右倾则表明此人比较注重感官和情绪
+7.对于单个字，如果此人的字上半部分能够完整的遮掩下半部分，说明此人比较懂得有始有终的道理，目的的一致性比较强
+8.从整篇文章上看，如果此人整篇文章的布局合理，并且一页首尾能够对正，说明此人顾全大局的能力比较强
+</code></pre>
+
+<h2>硬笔书法</h2>
+
+<hr />
+
+<p><code>下面之前写下来的，硬笔书法还有待提高！</code></p>
+
+<p><img src="http://imagesresource.qiniudn.com/writing/how_to_read_a_person_by_its_handwriting_portait.jpg" alt="ListView" /></p>
+
+<h2>English HandWriting</h2>
+
+<hr />
+
+<p>英文书法我比较喜欢圆体书法，虽然目前写的还不怎么样，下面是我的英文圆体书法，老王卖瓜下，还算漂亮吧:&ndash;)</p>
+
+<p><img src="http://imagesresource.qiniudn.com/writing/let_it_go_portait.jpg" alt="Let It Go" /></p>
+
+<h4><strong><em>Long Luo Version0.1 Created at 20:15 ~ 20:35 June 06th, 2014 @Shenzhen, China.</em></strong><p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140611/how_to_analyse_someone_character_by_his_handwriting/'><a href="http://longluo.github.io/blog/20140611/how_to_analyse_someone_character_by_his_handwriting/">http://longluo.github.io/blog/20140611/how_to_analyse_someone_character_by_his_handwriting/</a></a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'><a href="http://longluo.github.io">http://longluo.github.io</a></a></p></h4>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[WWDC2014总结之iOS8篇]]></title>
+    <link href="http://longluo.github.io/blog/20140605/summary_of_wwdc2014_ios8/"/>
+    <updated>2014-06-05T23:30:32+08:00</updated>
+    <id>http://longluo.github.io/blog/20140605/summary_of_wwdc2014_ios8</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>2014.06.03 Apple举行了万众瞩目的WWDC2014，发布了OS X Yosimite和iOS8，最近几天看了一部分Keynote，从网上搜集了一部分资料，将这次WWDC14的一些新功能点汇总出来，同时加入了自己的一些想法，探讨下码农群体应该注意哪些趋势。</p>
+
+<h2>Continuity &amp; Seamlessly</h2>
+
+<hr />
+
+<p>总体来说：</p>
+
+<p><strong><em>系统功能更加完善，更加人性化，更加开放</em></strong>，与其他iOS、Mac设备整合度扩大，并且预示了未来与可穿戴设备、智能家居的紧密结合的趋势，预计Health和Home两大产业将发生重大变革，将有一系列的新App和硬件改变我们的生活。</p>
+
+<p>WWDC的报道会分别讲解Mac OS Yosemite和iOS 8的各项功能。可是整场看下来，觉得这两个系统的更新都有一个指针：统一。爷就是关键的2个词，<strong>Continuity &amp; Seamlessly</strong>。</p>
+
+<p>Mac OS Yosemite的扁平化和透明统一了Mac OS和iOS的视觉风格。
+Mac OS也追加了iOS上特有的功能，比如打电话、IM。</p>
+
+<p>两个系统在视觉和功能上统一的同时，通过 iCloud 的升级，实现了数据同步。
+「视觉」，「功能」和「数据」统一了之后， Handoff 实现了Mac OS和iOS工作的无缝切换。</p>
+
+<p>最终，所有<strong>“苹果设备”</strong>都将无缝的融合到一起。随时拿起iPad，打开Macbook或者掏出 iPhone，你都能看到同样的视觉风格，得到一致的数据，使用同样的功能。</p>
+
+<!--more-->
+
+
+<h2>iOS8 新功能点</h2>
+
+<hr />
+
+<h3>HealthKit</h3>
+
+<p>健康管理软件  这是一个私人健康数据平台，它可以整合其他第三方健康应用数据，也就说可以在HealthKit中统一浏览其他应用监测的数据。同时，它也将与梅奥诊所和其他医疗机构合作，允许医疗机构接受或传输你的数据。</p>
+
+<h3>HomeKit</h3>
+
+<p>把iPhone变成智能家居中心控制器<br/>
+可以实现远程遥控智能家居设备，如智能门锁、灯泡或是监控摄像头。操作非常简单，只需对siri说：“我要上床睡觉了”，灯光就会变暗、门就会锁上。</p>
+
+<h3>Mail</h3>
+
+<pre><code>1. 支持直接从邮件中添加日历事件。
+2. 在邮件中将会引入全新的邮件手势，下滑消息可触发新动作。  
+3. 图像编辑和草图分享，能够直接通过浏览器来提供强悍的图片编辑能力，并快速进行邮件分享。
+4. 支持群组通信。群发功能——你可以直接在会话中添加或移除对象。                                                                                   
+5. 轻松切换和快速访问联系人。                                                                   
+6. 当你在手机上写了一半邮件之后，还可以在就近的电脑上继续完成  
+7. 在当前消息中打开另一封邮件，然后再切换回来（工作进度依然保存着）。                                                                                                           
+8. 可以在通知中直接为Facebook上的消息点赞！  
+                            ### iMessage    
+</code></pre>
+
+<p>变身为<strong><em>一个没有朋友圈和公众号的微信</em></strong></p>
+
+<pre><code>1. 支持群组通信。你可以直接在会话中添加或移除对象。                         2. 支持多达14个国家和地区的语言，加快打字速度
+3. 发送语音消息的功能很有趣。 
+4. 图片支持以“相册”形式快速查看。
+5. 支持语音信息，与对话的人共享位置。                                               
+6. 支持发短视频                                                                                        
+7. 在群聊短信设置中有“不要打扰”的相关选项
+</code></pre>
+
+<h3>优化输入法</h3>
+
+<h5>1. iOS8中在键盘中能够实现的第三方输入法，QuickType可智能预测。</h5>
+
+<p>当用户输入完当前单词之后，QuickType会提供3个智能预测的单词供用户选择。当然，如果你不喜欢这种“输入建议”，也可以轻松移除。</p>
+
+<h5>2. 在键盘中还引入了全新的Tap to Talk功能</h5>
+
+<p>新的Tap to Talk功能，语音输入短信，用户能够录制一段音频或视频并将其发送给收件人。</p>
+
+<h3>通知中心</h3>
+
+<p>精致的通知中心</p>
+
+<pre><code>1. 通知中心里可以查看各个活动图标，甚至连拍卖信息也可以在通知栏显现，可以做到图文并茂，也可以在通知中心回复消息。                            2. 通知中心中包括“日历、提醒、天气等相关图标”都使用全新的“Today视图”，显然，这种变动贯穿始终，系统能够这样，应用也可以
+</code></pre>
+
+<h3>通话功能</h3>
+
+<p>当你输入号码的时候，环境菜单(Contextual Menu)就会自己弹出来，整个通话功能变得更加强大，提供了多种方式来联系好友，甚至能够从网页来拨打电话。###  联系人<br/>
+联系人现在已经与搜索紧密相连，信息充分详实，能够与你文档中、日历事件中的朋友和家人进行匹配。</p>
+
+<h3>iCould Drive</h3>
+
+<p>1.设备无缝切换                                                                                   2.可以在“夜间模式”(dark mode)下进行了照片编辑
+在iOS、Mac OS以及windows上共享图片。并且图片编辑也有了很大的提升，iOS 8给出了更精准的数字调试，编辑后的图片也会被无缝同步到别的iOS设备以及Mac。当然，前提是你的网速和云端空间足够用，对于深度用户来说，付费是在所难免的。</p>
+
+<h3>云端</h3>
+
+<p>文件也可以储存在云端，以便访问。当文件太大的时候，MailDrop将能够创建一个安全连接。iCloud提供了免费的5GB储存空间，每个月只需要$0.99就能享受20GB。推出iCloud Drive网盘服务</p>
+
+<h3>桌面壁纸、锁屏</h3>
+
+<p>1.当你更换了桌面壁纸，应用窗口能够敏锐的进行“探知”，进而进行自我调节。2.增加新的壁纸 1.全新的锁屏界面。
+2.锁屏状态下直接快速删除通知</p>
+
+<pre><code>###  插件 
+</code></pre>
+
+<p>现在第三方应用程序可以自行定义插件，插件能够整合到通知中心中。小部件的加入极大的扩展了iOS的延展性外，大大提升了分享的乐趣。</p>
+
+<h3>SDK</h3>
+
+<p>该版本是App Store发布以来最大的一次更新，目前有超过4000个 全新开发的API。
+这项服务将于今年秋季向所有用户开放，这很像Steam和PS平台上的“早期访问”项目。</p>
+
+<h3>TestFlight</h3>
+
+<p>TestFlight是面向开发者和用户的Beta测试服务，是完全免费的。应用介绍页面还可以支持视频，我们甚至还引入了一个全新的beta测试服务——TestFlight。
+App Store正式支持TestFlight了,开发者可以把测试版放在这里面供用户参与测试,并不需要越狱就可以拿到最新版本</p>
+
+<h3>应用管理</h3>
+
+<p>更完善的iOS应用管理  ### Spotlight搜索应用、兴趣点、新闻、歌曲、甚至iTunes。</p>
+
+<h3>优化无线网络</h3>
+
+<p>支持即时无线热点特性，共享无线网络变得更为简单，手机将可以扮演“中继”的角色。### 苹果地图 <br/>
+中国地区的地图大幅改进，支持导航特性。为了地提高图的准确性和稳定性，修正了诸多数据和错误。###  Siri</p>
+
+<pre><code>1. 在Siri中整合了Shazam，可以在不碰到手机的情况下就唤醒它 2. Siri支持流媒体识别，可以直接通过它购买音乐    ### Touch ID    
+</code></pre>
+
+<p>能够使用 Touch ID来保护诸如Mint之类的应用Touch ID向开发者开放### Safari
+1. 在Safari中中出现了用于分享的全新功能Markup，还有一个“tab view”（标签页视图)。2. 本地搜索功能更丰富，增加很多互联网服务Safari是目前最快的浏览器，在一段Safari的演示视频中显示浏览速度惊人的快。</p>
+
+<h3>控制面板</h3>
+
+<p>iCloud Drive， iCloud Drive的控制面板能够浮动在应用上，面板是支持环境感知的。</p>
+
+<h3>SpriteKit</h3>
+
+<p><strong>高端3D和休闲游戏方面</strong></p>
+
+<pre><code>这是一个3D场景渲染器，这里物理模拟了5000片花瓣，而且锦鲤池的每条鱼都有自己的AI。当iOS 8正式推出的时候，Zen Garden也会同步免费放出，EA将(寒霜)Frostbite引擎带到了移动端一副《植物大战僵尸》画面上的三角形，可以达到130万个
+</code></pre>
+
+<h2>个人如何把握大势？</h2>
+
+<hr />
+
+<h3>时间太晚，下次再写！</h3>
+
+<h4><strong><em>Long Luo Created at PM23:35 ~ 00:35 @June 06th, 2014 at Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Modified at PM23:11 ~ 23:18 @June 11th, 2014 at Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140605/summary_of_wwdc2014_ios8/'>http://longluo.github.io/blog/20140605/summary_of_wwdc2014_ios8/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[我看车展感(tu)想(cao)]]></title>
+    <link href="http://longluo.github.io/blog/20140602/ideas_about_2014_auto_show/"/>
+    <updated>2014-06-02T14:15:10+08:00</updated>
+    <id>http://longluo.github.io/blog/20140602/ideas_about_2014_auto_show</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>2014年的06月01日，去参观了2014年深圳·香港·澳门国际车展，算是第一次参加车展吧，按照惯例谈谈感(tu)想(cao)吧：</p>
+
+<h3>1. 学到的东西:</h3>
+
+<hr />
+
+<p><strong><em>English：</em></strong></p>
+
+<pre><code>车展：Auto Show or Motor Show
+手动挡：MT(Manual Transmission)
+自动挡：AT(Automatic Transmission)
+手自一体：AMT(Automated Mechanical Transmission)
+档位：P(Parking) R(Reverse) N(Neutral) D(Drive)
+</code></pre>
+
+<p><strong><em>Car Brand：</em></strong></p>
+
+<!--more-->
+
+
+<p><strong><em>A</em></strong></p>
+
+<pre><code>奥迪－Audi 
+阿斯顿马丁－Aston Martin   
+</code></pre>
+
+<p><strong><em>B</em></strong></p>
+
+<pre><code>宝马－BMW   
+宾利－Bentley   
+别克－Buick       
+</code></pre>
+
+<p><strong><em>C</em></strong> </p>
+
+<pre><code>凯迪拉克－Cadillac   
+雪铁龙－Citroen   
+雪佛兰－Chevrolet   
+</code></pre>
+
+<p><strong><em>F</em></strong> </p>
+
+<pre><code>法拉利－Ferrari   
+菲亚特－Fiat   
+福特－Ford 
+</code></pre>
+
+<p><strong><em>H</em></strong> </p>
+
+<pre><code>本田－Honda   
+现代－Hyundai   
+</code></pre>
+
+<p><strong><em>J</em></strong> </p>
+
+<pre><code>捷豹(美洲虎)－Jaguar
+</code></pre>
+
+<p><strong><em>K</em></strong> </p>
+
+<pre><code>起亚－Kia   
+</code></pre>
+
+<p><strong><em>L</em></strong> </p>
+
+<pre><code>路虎(陆虎)－Land Rover   
+雷克萨斯－Lexus   
+蓝伯基尼－Lamborghini  
+</code></pre>
+
+<p><strong><em>M</em></strong></p>
+
+<pre><code>马自达－Mazda 
+梅赛德斯-奔驰－Mercedes-Benz   
+玛莎拉蒂－Maserati 
+迷你－Mini  
+</code></pre>
+
+<p><strong><em>N</em></strong></p>
+
+<pre><code>日产－－Nissan  
+</code></pre>
+
+<p><strong><em>P</em></strong></p>
+
+<pre><code>标致－Peugeot   
+保时捷－Porsche   
+</code></pre>
+
+<p><strong><em>R</em></strong></p>
+
+<pre><code>劳斯莱斯－Rolls-royce   
+</code></pre>
+
+<p> 
+<strong><em>S</em></strong> </p>
+
+<pre><code>双龙－Ssangyong   
+斯柯达－Skoda   
+斯巴鲁－Subaru   
+铃木－Suzuki     
+精灵－Smart 
+</code></pre>
+
+<h3>2. 感(tu)想(cao)</h3>
+
+<hr />
+
+<ol>
+<li>没有看见一辆概念车，也没有看到任何一辆已停产的经典车型，估计是场地费太贵了！</li>
+<li>没有看到一辆卡车，要知道我可是十足的卡车控，唯一的商用车就是奔驰改造的商务车或房车了，一大遗憾！</li>
+<li>参加车展93%是来看车模的，剩下的5%是来拍照的，2%是来看车的，1%是来买车的，还有剩下的1%是来卖东西的，还有0.0001%，比如我是几者兼有的。</li>
+<li>Ferrari，Mclaren, Rolls-Royce, Maserati, Lamborghini的东西就是高贵，只能远远隔着栏杆观看，正所谓“墙里秋千墙外道，墙里佳人笑。笑渐不闻声渐悄，多情却被无情恼。”</li>
+<li>绝大部分车模的脸蛋都不怎么好看，也是，仅仅海拔要1.75m以上，同时还要求身材比例要好，这就刷掉了多少人，都是万里挑一级别的，你以为个个都是张梓琳？</li>
+<li>与其欣赏画着浓妆的脸蛋，肤白貌美大长腿，满足其一就行了，不如看看大长腿吧:&ndash;)</li>
+<li>雪佛兰热舞的妹子都很不错，其中有一个脸蛋非常漂亮，而且舞跳得很好；</li>
+<li>穿着红裙的女主持身材脸蛋都是女神级的，厂商越高大上，车模和活动越好看，奖品也越丰厚。</li>
+<li>如果你看到某个场地人群突然增多，不用怀疑，活动时间到了或者那里有车模出没，请注意。</li>
+<li>参展的车除了低端到7w以下的车，全部都是AT或者AMT的。</li>
+<li>新款的FIT不错，现场的人气也很高，外观不错，动力也很足，空间大，而且比较便宜，家庭代步小车不错的选择；</li>
+<li>CRUZE，POLO，VW，FIT，Mazda6等车型是除了豪车区人气高的几个地方，说明这些车型都是大家跳一跳能够够得着的车型；</li>
+<li>近距离体验了保时捷的全部参展车型，911，卡宴，商务车，跑车都不错，体验非常之好，超级舒适，空间超大；</li>
+<li>最心水的包括Benz AMG，Benz GL，Golf R，BMW X，Lexus，Acura；</li>
+<li>Mazda请了3个美女表演了肚皮舞，第一次近距离欣赏了下；</li>
+<li>房车的导购经理都是长发女神级的，真的很漂亮，可惜把我等屌丝排斥在外，今后要努力挣钱；</li>
+<li>总体来说，规模比起北京、上海的车展规模还是差了点，部分品牌并没有参展，居然还收60块，一天时间没了；</li>
+<li>现场卖盒饭，饮料估计挣了不少，恒大冰泉很NX嘛！</li>
+<li>近距离体验了变速器，车桥，地盘，发动机等实物模型，作为一个纯机械控得以了解内部构造；</li>
+<li>参加了2次活动，多次举手回答问题，被主持人无视，无奈没有拿到奖品。</li>
+<li>MT作为历史遗留，今后一定会被AT和AMT所取代，毕竟科技以人为本，操作越来越傻瓜化，这是历史大势；</li>
+<li>对于车来说，考虑点包括：发动机，变速器，价格，空间，内饰，油耗，养车费用，外形，品牌等，然后再根据个人侧重点选择。</li>
+<li>唯一感想：<strong><em>要努力挣钱，才能享用这些好东西</em></strong>。</li>
+</ol>
+
+
+<h4><strong><em>Long Luo Created at PM23:35 ~ 00:41 @June 02nd, 2014 at Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Modified at AM00:05 @June 05th, 2014 at Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140602/ideas_about_2014_auto_show/'>http://longluo.github.io/blog/20140602/ideas_about_2014_auto_show/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[100 Top Action Verbs to Use to Write Powerful, Effective Resume Subheads That Will Win You the Job]]></title>
+    <link href="http://longluo.github.io/blog/20140511/100-top-action-verbs-to-use-to-write-powerful/"/>
+    <updated>2014-05-11T11:41:09+08:00</updated>
+    <id>http://longluo.github.io/blog/20140511/100-top-action-verbs-to-use-to-write-powerful</id>
+    <content type="html"><![CDATA[<h4><strong><em>翻译 By Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://ezinearticles.com/?100-Top-Action-Verbs-to-Use-to-Write-Powerful,-Effective-Resume-Subheads-that-Will-Win-You-the-Job&amp;id=655546">100 Top Action Verbs to Use to Write Powerful, Effective Resume Subheads that Will Win You the Job</a></h4>
+
+<hr />
+
+<blockquote><p>Resume writing is of paramount importance in managing the image you present to employers. The stronger the skill and experience descriptions are in your resume &mdash; the higher the number of interviews and salary offers you receive. Having a well-written resume that presents you in your best light will help you attain more interviews and receive higher salary offers.</p></blockquote>
+
+<p>写简历</p>
+
+<blockquote><p>You have special gifts and abilities. If you develop them properly, you can use them to achieve all your goals. If you are committed to creating a fulfilling career, you must uncover these special gifts and abilities and dedicate yourself to developing and sharpening them. The most powerful resume you can write is one that showcases your unique abilities and talents. Simply Nonfiction Resume Writing Service is a resume writing service that has a proven, strategic system for re-writing your resume so that it showcases your unique abilities and talents and helps you land more interviews, helps you win your dream job and helps you earn the salary you and your loved ones deserve.</p></blockquote>
+
+<p>ni</p>
+
+<blockquote><p>Your ability to generate a generous income for yourself and your family is the most important asset your possess. A well-written resume is one of your most powerful possessions because it allows you to leverage your earning power &mdash; the most important financial asset you possess.</p></blockquote>
+
+<p>5</p>
+
+<blockquote><p>Simply Nonfiction Resume Writing Service has invented a distinctive Unique Talents and Abilities Resume Writing System that allows you to take your career to a higher level than it&rsquo;s ever been at before. Part of our strategic program involves writing vivid, strong headings and subheads for your writing. Vivid, descriptive action words create a word picture in a potential employer&rsquo;s mind. Action verbs enable the potential employer to visualize you accomplishing important tasks in your previous jobs &mdash; this gives them them impression you will also be able to accomplish great feats for them.</p></blockquote>
+
+<p>6</p>
+
+<blockquote><p>Simply Nonfiction Resume Writing Service has carefully studied and analyzed the top 100 Action Verbs to use when writing resume headings and subheadings. These action verbs are particularly powerful because they prompt potential employers to visualize vivid word pictures in their minds. After reading this list, you may decide that you would like the services of a professional resume writing service to help you professionally create a resume. You can visit our website at [<a href="http://michelerooney.tripod.com/">http://michelerooney.tripod.com/</a>] for details.</p></blockquote>
+
+<p>8</p>
+
+<blockquote><p>The Top 100 Action Verbs to Use for Resume Writing according to Simply Nonfiction Resume Writing Service are:</p></blockquote>
+
+<p>100个</p>
+
+<ol>
+<li>Accelerated</li>
+<li>Accomplished</li>
+<li>Accounted for</li>
+<li>Accumulated</li>
+<li>Achieved</li>
+<li>Active in</li>
+<li>Arbitrated</li>
+<li>Articulated</li>
+<li>Boosted</li>
+<li>Briefed</li>
+<li>Broadened</li>
+<li>Budgeted</li>
+<li>Campaigned</li>
+<li>Chaired</li>
+<li>Championed</li>
+<li>Clarified</li>
+<li>Coached</li>
+<li>Collaborated</li>
+<li>Coordinated</li>
+<li>Corroborated</li>
+<li>Cultivated</li>
+<li>Customized</li>
+<li>Decided</li>
+<li>Decreased</li>
+<li>Delegated</li>
+<li>Demonstrated</li>
+<li>Designated</li>
+<li>Developed</li>
+<li>Devised</li>
+<li>Diagnosed</li>
+<li>Documented</li>
+<li>Doubled</li>
+<li>Economized</li>
+<li>Edited</li>
+<li>Educated</li>
+<li>Empowered</li>
+<li>Enabled</li>
+<li>Encouraged</li>
+<li>Endorsed</li>
+<li>Enhanced</li>
+<li>Faciliated</li>
+<li>Focused</li>
+<li>Forecasted</li>
+<li>Generated</li>
+<li>Harmonized</li>
+<li>Harnessed</li>
+<li>Identified</li>
+<li>Illustrated</li>
+<li>Impressed</li>
+<li>Improved</li>
+<li>Increased</li>
+<li>Justified</li>
+<li>Launched</li>
+<li>Led</li>
+<li>Magnified</li>
+<li>Managed</li>
+<li>Marketed</li>
+<li>Mastered</li>
+<li>Navigated</li>
+<li>Negotiated</li>
+<li>Observed</li>
+<li>Obtained</li>
+<li>Organized</li>
+<li>Orchestrated</li>
+<li>Participated</li>
+<li>Pinpointed</li>
+<li>Performed</li>
+<li>Publicized</li>
+<li>Published</li>
+<li>Realigned</li>
+<li>Recognized</li>
+<li>Recommended</li>
+<li>Selected</li>
+<li>Separated</li>
+<li>Spearheaded</li>
+<li>Stimulated</li>
+<li>Succeeded</li>
+<li>Surpassed</li>
+<li>Synchronized</li>
+<li>Synergized</li>
+<li>Tabulated</li>
+<li>Targeted</li>
+<li>Tested</li>
+<li>Took over</li>
+<li>Traded</li>
+<li>Translated</li>
+<li>Triggered</li>
+<li>Triumphed</li>
+<li>Troubleshot</li>
+<li>Uncovered</li>
+<li>Underwrote</li>
+<li>Unearthed</li>
+<li>Unifed</li>
+<li>Upgraded</li>
+<li>Urged</li>
+<li>Utilized</li>
+<li>Validated</li>
+<li>Verbalized</li>
+<li>Verified</li>
+<li>Vitalized</li>
+<li> Won over</li>
+</ol>
+
+
+<blockquote><p>Put these top 100 action words to work in the heading and subheadings of your resume will help you make a positive impression on employers. If you decide you&rsquo;d like the assistance of a professional resume writing company in creating your resume visit our site at</p></blockquote>
+
+<h4><strong><em>Long Luo Version0.1 Created at May, 11th 2014 11:50 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140511/100-top-action-verbs-to-use-to-write-powerful/'>http://longluo.github.io/blog/20140511/100-top-action-verbs-to-use-to-write-powerful/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[iOS编程基础: Hello World App是如何运作的?]]></title>
+    <link href="http://longluo.github.io/blog/20140505/ios_programming_basic_how_does_the_hello_world_app_work/"/>
+    <updated>2014-05-05T19:11:03+08:00</updated>
+    <id>http://longluo.github.io/blog/20140505/ios_programming_basic_how_does_the_hello_world_app_work</id>
+    <content type="html"><![CDATA[<h4><strong><em>翻译 By Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://www.appcoda.com/ios-programming-basic-how-does-the-hello-world-app-work/">iOS Programming Basic: How Does the Hello World App Work?</a></h4>
+
+<pre><code>译者注：
+1. 由于这是技术文章，所以有些词句使用原文，表达更准确。
+2. 由于水平有效，有些地方可能翻译的不够准确，如有不当之处，敬请批评指正.
+</code></pre>
+
+<p>我希望你享受了第一个<strong><em>iOS编程教程</em></strong>，同时已经创造了你的第一个App。在进入下一教程以及制作一个更复杂的App之前，我们有必要回过头，分析这个Hello World App。对于你理解一些Objective-C语言的语法和App的内部工作机制有很大帮助。</p>
+
+<p>目前为止，想必你已经按照教程完成了你的第一个Hello World App。不过，当你完成了这个教程之后，你脑海里肯定冒出了更多疑问：</p>
+
+<ul>
+<li><strong>xib,.h,.m</strong>文件是做什么用的？</li>
+<li>在<code>showMessage</code>内部的代码是什么？用什么作用？</li>
+<li>当你按下<code>Hello World</code>的按钮发生了什么呢？按钮是如何触发了显示消息的动作呢?</li>
+<li>Xcode中的<code>Run</code>按钮是如何运作的？</li>
+</ul>
+
+
+<!--more-->
+
+
+<p>我希望你已经对Xcode IDE开发环境比较熟悉了，这样我就不用再解释一遍上面的内容了。对于每个开发者来说，理解代码的内部细节和抓住基本概念对于iOS编程是很有必要的。对于某些技术概念，如果你没有丝毫的编程背景来说，理解一些技术概念是有一定难度的。但是，别担心，这里仅仅是一个开始。如果你继续学习后续的教程，写出更多的代码，你就能更好的理解iOS编程。尽你所能努力学习更多知识吧！</p>
+
+<h2>Interface Builder, Header and Implementation Files</h2>
+
+<p>首先，.xib, .h, .m文件是什么呢？这是一位读者提出的一个非常好的问题。在项目导航中，你应该可以找到3种主要的文件类型：<strong>.xib, .h, .m</strong>。(如果你打开“Supporting Files”文件夹，你可以找到其他的文件类型，例如plist和framework。但到目前为此，我们先忘掉它们，在今后课程中我们会讨论它们。)</p>
+
+<h3>.xib</h3>
+
+<ul>
+<li>如果一个文件也有.xib的扩展名，它们是Interface Builder文件，存储了应用的UI。当你点击了.xib文件，Xcode会自动的打开Interface Builder界面，你可以通过拖动和放下来编辑应用的UI。如下图所示:</li>
+</ul>
+
+
+<p><img src="http://www.appcoda.com/wp-content/uploads/2012/04/Hello-World-Interface-Builder.jpg" alt="Interface Builder in Xcode" /></p>
+
+<p><strong>Interface Builder in Xcode</strong></p>
+
+<h3>.h and .m</h3>
+
+<ul>
+<li><strong>.h</strong>扩展名的文件表示这是<code>头文件</code>，<strong>.m</strong>扩展名表示是具体的<code>实现</code>。和其他大多数编程语言一样，Objective-C的源码也分为2部分：<code>接口</code>和<code>实现</code>。</li>
+</ul>
+
+
+<p>为了便于你更好的理解这2者关系，我们拿电视遥控器打比方。我们可以很方便地使用无线遥控器调节电视的音量。你按下音量+按钮增大扬声器的音量。切换频道时，你只需要按下频道数字。那我来问问你，你知道当你按下音量按钮的背后发生了什么吗？估计你不知道吧。我相信大部分人都不知道遥控器和扬声器之间是如何通信的。我们仅仅知道的是，那个按钮是用来调节音量的。在这里，按钮就是<code>接口</code>，而按钮之后的具体细节我们称之为<code>实现</code>。</p>
+
+<p>现在你应该对接口和实现有了一个更深的理解。让我们回到代码，在Objective-C语言中，一个类的接口是放在<code>.h</code>文件中。我们使用语法标示符<code>@interface</code>来声明一个类的接口。看下<strong>HelloWorldViewController.h</strong>的具体实现：</p>
+
+<pre><code>@interface HelloWorldViewController : UIViewController
+
+-(IBAction)showMessage;
+
+@end
+</code></pre>
+
+<p>HelloWorldViewController这个类名以“@interface”开头。内部则声明了一个“showMessage”的实现，也可以称之为<strong>方法</strong>。</p>
+
+<p>就像音量按钮，显然我们不知道<code>showMessage</code>这个方法是如何运作的。你仅仅知道它是用于在屏幕上显示一条信息。具体的实现则放在HelloWorldViewController.m文件中，如下所示：</p>
+
+<pre><code>@implementation HelloWorldViewController
+
+// I've removed other methods for better reading. Focus on the showMessage method first.
+
+- (IBAction)showMessage 
+{
+    UIAlertView *helloWorldAlert = [[UIAlertView alloc]
+                                initWithTitle:@"My First App" message:@"Hello, World!" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+
+    // Display the Hello World Message
+    [helloWorldAlert show];
+}
+
+@end
+</code></pre>
+
+<p>正如你上面所示，你使用“@implementation”去声明一个实现。在“showMessage”中，代码用于定义在屏幕中弹出一条警告。你不需要弄明白在“showMessage”的方法中每一行代码具体含义。简单来说，创建了一个以“My First App” 为标题，“Hello, World”作为消息的UIAlertView。然后调用“show”方法去请求iOS用于在屏幕上显示一个弹出消息。如下图所示：</p>
+
+<p><img src="http://www.appcoda.com/wp-content/uploads/2012/04/Hello-World-App.jpg" alt="Hello World App" /></p>
+
+<p><strong>Hello World App</strong></p>
+
+<p>想必你已经弄明白了接口和实现吧？</p>
+
+<h2>Behind the Touch and Tap</h2>
+
+<p>当你按下 “Hello World”按钮实际上发生了什么？ “Hello World” 按钮是如何调用 “showMessage” 方法去显示“Hello World”的消息呢？</p>
+
+<p>回想起你是如何在Interface Builder建立起“Hello World”按钮和“sendMessage”的具体动作的关联的。再次打开“HelloWorldViewController.xib” ，选择“Hello World” 按钮，在Utility区域点击“Sent Events”按钮打开发生事件。</p>
+
+<p><img src="http://www.appcoda.com/wp-content/uploads/2012/04/Hello-World-Button-Sent-Events.jpg" alt="Hello World Button Send Events" /></p>
+
+<p>发送部分展示了所有的关于事件和动作的联系。例如上述图片所示，“Touch Up Inside” 事件就关联到 “showMessage”的动作。在iOS中，app是事件驱动的。控制/目标监听特定的动作，例如触摸和按下。当事件触发之后，目标就会调用预设的关联到事件的动作。</p>
+
+<p>在我们的Hello World App中，当用户在按钮上抬起手指， “Touch Up Inside”的事件就触发了。结果，它会调用“showMessage”的动作去显示 “Hello World” 的消息。</p>
+
+<p>下图很直观的展示了刚才所描述的事件流:</p>
+
+<p><img src="http://www.appcoda.com/wp-content/uploads/2012/04/HelloWorld-Message-Flow.jpg" alt="Event and Message Flow of Hello World App" /></p>
+
+<p><strong>Event and Message Flow of Hello World App</strong></p>
+
+<h2>Behind the Scene of the “Run” Button</h2>
+
+<p>当你点击“Run” 按钮，Xcode就会载入模拟器，运行你的App。但是在这个场景之后，发生了什么？作为一名程序员，你需要了解它的整个流程。</p>
+
+<p><img src="http://www.appcoda.com/wp-content/uploads/2012/04/Xcode-Build-Process.jpg" alt="Event and Message Flow of Hello World App" /></p>
+
+<p>整个流程可以分为3部分：<strong>编译、打包和运行</strong>。</p>
+
+<h4>编译</h4>
+
+<ul>
+<li>你可能会认为iOS可以读懂Objective-C代码。大错特错，实际上，iOS只能读懂机器码。Objective-C代码只是便于程序员去读和写代码。我们需要将Objective-C源码翻译成机器码，这样iOS才可以读懂你的App的源码。这个过程就称之为编程。Xcode已经自带了编译器用于编译源码。</li>
+</ul>
+
+
+<h4>打包</h4>
+
+<ul>
+<li>不同于其他源码，一个App通常包含大量的资源文件，比如图片，文本，xlib文件等等。所有的这些资源都必须要打包进最终的App中。</li>
+</ul>
+
+
+<p>我们通过把上述2个过程称之为<strong>build</strong>。</p>
+
+<p><img src="http://www.appcoda.com/wp-content/uploads/2012/04/Xcode-Build-Option.jpg" alt="Xcode-Build-Option" /></p>
+
+<h4>Run</h4>
+
+<ul>
+<li>按下之后，启动模拟器，载入你的App.</li>
+</ul>
+
+
+<h4><strong><em>Long Luo created at 19:22 ~ 21: 06 May 5th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140505/ios_programming_basic_how_does_the_hello_world_app_work/'>http://longluo.github.io/blog/20140505/ios_programming_basic_how_does_the_hello_world_app_work/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[学车科目二要点总结]]></title>
+    <link href="http://longluo.github.io/blog/20140503/tips_of_driving_exam/"/>
+    <updated>2014-05-03T11:59:03+08:00</updated>
+    <id>http://longluo.github.io/blog/20140503/tips_of_driving_exam</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>2014年的51 3天假期，有2个上午都去学车去了，因为不久之后我就要去考试了，总之呢，很多事情都是做的越早越好。今天把科目二考试的一些<strong><em>注意事项</em></strong>给记下来：</p>
+
+<h4>0. 准备工作</h4>
+
+<p>上车之后，第一步是调好靠背，<code>后视镜</code>，注意座椅不要调到太靠前，系好安全带。后视镜要保持后轮车毂在后视镜中间位置，把手在后视镜上方。</p>
+
+<p>松手刹，踩住离合器和刹车，离合器踩到底，挂一档起步，<code>慢慢松离合器，直到车头开始震动，离合不动，慢慢松刹车</code>，车辆起步。</p>
+
+<!--more-->
+
+
+<p>最重要的是要<strong>踩好离合器</strong>，保持<strong>很慢的速度</strong>，因为速度慢了可以慢慢调整，快了的话就没办法调整了。</p>
+
+<h4>1. 曲线行驶</h4>
+
+<p>车身调正，保持车身偏右进入，&#8221;<code>考</code>&ldquo;字压着右边边线，进入之后，保持&rdquo;<code>车</code>&ldquo;字压着边线，转弯时，方向盘不动，直到车头角压着左边边线，方向盘右转一圈半，之后保持<code>试</code>字压着边线。</p>
+
+<p>Ok。</p>
+
+<h4>2. 直角转弯</h4>
+
+<p>车身调正，保持车身偏右进入，&#8221;<code>考</code>&ldquo;字压着右边边线。直到车头盖压住前面边线，迅速向左打死方向盘，车身平行之后，迅速调正方向盘。</p>
+
+<p>Ok。</p>
+
+<h4>3. 坡道定点停车</h4>
+
+<p>车身调正，<strong>一直打左转向灯</strong>，保持<code>考</code>字和<code>试</code>字的中间压着黄线左边缘，慢速行驶。当左后视镜刚好可以看到双黄线的上边缘，踩住刹车。</p>
+
+<p>Ok。</p>
+
+<h4>4. 侧方停车</h4>
+
+<p>车身调正，保持<code>考</code>字压着右边黄线，慢速行驶。慢慢调到距离右边黄线为30公分左右，从右后视镜观察。当与二号角与窗口锁重合时，停车。方向盘向左打到死，直到<code>车</code>字压到黄线中间，停车。</p>
+
+<p>方向盘调正，右转半圈，踩住刹车，挂倒档，开始倒车，注意左后视镜，当观察到<code>后轮轮胎碰到黄线时</code>，迅速<code>向左打死</code>方向盘，直到车头盖缝隙与左边线平行，停车。</p>
+
+<p>打左转向灯，踩住刹车离合器，挂一档，直到<code>车</code>字压住左边黄线，向右调整方向盘。直到<code>考</code>字压住右边线，方向盘回正。</p>
+
+<p>Ok。</p>
+
+<h4>5. 倒车入库</h4>
+
+<p>倒车入库是5项中<code>最难</code>的。</p>
+
+<p>调整车头盖左边缝隙压住左边边线，车身调正，当桩与右窗口重合时，下车查看，保持车尾与2个桩在一条直线上。</p>
+
+<p>上车，方向盘<strong>向右打死</strong>，<em>挂倒档</em>，观察<strong>右后视镜</strong>，当车毂与角间隔一个篮球宽度时，方向盘向左回一圈，观察左后视镜，当车身与边线平行，方向盘回正，当后视镜完全遮住时，间隔0.5s，停车。</p>
+
+<p>起步观察，车身两边距离宽度是否一致，哪天多向哪边调，调半圈后回正，观察左窗口锁，当与线重合时，方向盘<code>向左调一圈半</code>，保持方向盘不动，直到左车门把手与线重合，停车。挂倒档，方向盘不动，观察左后视镜，直到左车毂与角间隔30公分，<code>向左打死方向盘</code>，车身回正时，方向盘回正，观察后视镜是否压住线。</p>
+
+<p>Ok。</p>
+
+<h4><strong><em>Long Luo Created at AM12:20 ~ 13:15 @May 03rd, 2014 at Shenzhen, China.</em></strong><p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140503/tips_of_driving_exam/'><a href="http://longluo.github.io/blog/20140503/tips_of_driving_exam/">http://longluo.github.io/blog/20140503/tips_of_driving_exam/</a></a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'><a href="http://longluo.github.io">http://longluo.github.io</a></a></p></h4>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[一道有趣的算法题:仿照Excel的列编号,给定一个数字,输出该列编号字符串]]></title>
+    <link href="http://longluo.github.io/blog/20140502/algorithm_excel_row_number_string/"/>
+    <updated>2014-05-02T22:15:57+08:00</updated>
+    <id>http://longluo.github.io/blog/20140502/algorithm_excel_row_number_string</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>最近遇到一个算法题：</p>
+
+<p>仿照Excel的列编号，给出一个数字，输出该列编号字符串。</p>
+
+<p>例如：A对应1，Z对应26，AA对应27，AZ对应52 &hellip;&hellip;</p>
+
+<p>这个题目是一个典型的<strong><em>26进制</em></strong>思路去处理，一个整数除26然后但是这个题目里面有很多陷阱，在1, 26, 52等特殊情况进行考虑，经过晚上接近1个小时的编写，完成的代码如下：</p>
+
+<!--more-->
+
+
+<h4><code>C++</code>代码如下所示：</h4>
+
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string.h&gt;
+
+using namespace std;
+
+//函数itos：正整数到编号转换
+//num：输入的正整数，pcout：输出，Max：输出控件最大长度
+void itos(int num, char *pcout )
+{
+    char *res = new char[255];
+    int m = 0, n = 0;
+
+    while((num &gt;= 1) &amp;&amp; (n &lt; 255))
+    {
+        m = num % 26;
+        if (m != 0)
+        {
+            res[n] = 'A' + m - 1;
+        }
+        else
+    {
+            res[n] = 'Z';
+            num--;
+    }
+
+        num /= 26;
+        n++;
+}
+
+    for(m = n; m &gt; 0; m--)
+    {
+        pcout[n - m] = res[m - 1];
+    }
+
+    pcout[n] = '\0';
+    delete[] res;
+
+    return;
+}
+
+//soti：字符串到数字的转换
+int stoi(char *cha)
+{
+ int m = 0, n = 0, i = 0, val = 0, a = 0;
+ char *pc = cha ;
+
+ while(*pc != '\0' )
+{
+      //后移到个位 
+     pc++;
+     n++;
+}
+
+ for(i = 1; i &lt;= n; i++)
+{
+      //位循环
+     pc--;
+     a = i;
+     m = 1;
+
+      while(a &gt; 1)
+     {
+          //位权
+         m *=26;
+         a--;
+     }
+
+     m *= (*pc - 'A' +1);
+     val += m;
+}
+
+ return val;
+}
+
+int main()
+{
+    char out[255] = {0};
+    printf( "out = %s\n", out);
+    itos(32, out);
+    printf( "out = %s\n", out);
+
+    getchar();
+
+    return true ;
+}
+</code></pre>
+
+<h4><code>JAVA</code>代码如下所示：</h4>
+
+<pre><code>package com.Algorithms.excelrow;
+
+/*
+ * @author: Long Luo
+ * @Created By Frank Luo @2014.05.01
+ */
+public class ExcelRow {
+    public static void main(String args[]) {
+
+        System.out.println("25=" + int2Str(5) + ",28=" + int2Str(28) + ",123="
+                + int2Str(123));
+        System.out.println("C=" + str2Int("C") + ",ZA" + str2Int("ZA")
+                + ",AAF=" + str2Int("AAF"));
+    }
+
+    /*
+     * @Description: covert the String to Integer.
+     */
+    public static int str2Int(String input) {
+        int val = 0;
+        int len = input.length();
+        int mul = 0;
+
+        for (int i = len - 1, j = 0; i &gt;= 0; i--, j++) {
+            mul = 1;
+
+            int temp = input.charAt(i) - 'A' + 1;
+            double weiquan = Math.pow(10, j);
+            mul = (int) (temp * weiquan);
+            val += mul;
+
+            System.out.println("temp=" + temp + ",weiquan=" + weiquan + ",mul="
+                    + mul + ",val=" + val);
+        }
+
+        return val;
+    }
+
+    /*
+     * @Description: covert the Integer to String.
+     */
+    public static String int2Str(int rowNum) {
+        StringBuffer temp = new StringBuffer(255);
+        char ch;
+
+        while (rowNum &gt;= 1) {
+
+            int i = rowNum % 26;
+            if (i != 0) {
+                ch = (char) ('A' + i - 1);
+                temp = temp.append(ch);
+            } else {
+                ch = 'Z';
+                temp = temp.append(ch);
+                rowNum--;
+            }
+
+            System.out.println("temp=" + temp + ",ch=" + ch + ",rowNum="
+                    + rowNum);
+            rowNum /= 26;
+        }
+
+        return temp.reverse().toString();
+    }
+
+}
+</code></pre>
+
+<p>以上代码均测试通过。</p>
+
+<p>如有不当错误之处，敬请批评指正，如有更好的方法，也请共同探讨, Thx:&ndash;)</p>
+
+<h4><strong><em>Long Luo Created at PM22:25 ~ 22:40 @May 02nd, 2014 at Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140502/algorithm_excel_row_number_string/'>http://longluo.github.io/blog/20140502/algorithm_excel_row_number_string/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android网络编程指南App 3.0版本发布]]></title>
+    <link href="http://longluo.github.io/blog/20140427/android_network_courses_app_release/"/>
+    <updated>2014-04-27T21:29:56+08:00</updated>
+    <id>http://longluo.github.io/blog/20140427/android_network_courses_app_release</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<hr />
+
+<h3>1. App是为了解决什么问题？</h3>
+
+<hr />
+
+<!--more-->
+
+
+<h3>2.</h3>
+
+<hr />
+
+<h3>3.</h3>
+
+<hr />
+
+<h4><strong><em>Long Luo Version0.1 Created at 2014/04/27 21:35 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Version0.1 Completed at 2014/04/13 22:26 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140427/android_network_courses_app_release/'>http://longluo.github.io/blog/20140427/android_network_courses_app_release/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[如何设计一个优秀的App?]]></title>
+    <link href="http://longluo.github.io/blog/20140412/tips_for_making_a_better_app/"/>
+    <updated>2014-04-12T10:30:39+08:00</updated>
+    <id>http://longluo.github.io/blog/20140412/tips_for_making_a_better_app</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>题目有点标题党了，因为这是一个<em>非常大的课题，涉及面的东西之多</em>，可以写好几本书了。</p>
+
+<p>这几年，体验了很多App，也亲自写了一些App，最近又去思考了一些东西，在此把自己的一些想法写出来，希望能够抛砖引玉，一起交流一些想法。</p>
+
+<h3>1. App是为了解决什么问题？</h3>
+
+<hr />
+
+<p><strong><em>App</em></strong>, 也就是 <strong><em>应用软件</em></strong>。在PC互联网时代，传统企业顶多爷就是一个IT部分，负责公司内部的关于网络，电脑，OA之类的服务。我们也很难想象，在PC上有大量的企业应用。</p>
+
+<p>2007年随着iPhone的横空出世，带来了一个革命性的变化，宣讲会上Jobs宣称reinvent the Phone。iPhone带来了体验非常好的电容触摸屏，多点触摸，手势操作等一系列技术。之后又带来了App Store，宣告了<strong><em>移动互联网时代的到来</em></strong>。</p>
+
+<p>为了满足消费者的需求，以往运营商和厂商往往<em>困扰于如何作出差异化</em>，之前都是用外壳、屏幕、ID等硬件表现来实现差异化。iPhone实现了一个革命性的突破，<strong>用软件和服务在作出差异化</strong>，通过各种App来实现。</p>
+
+<!--more-->
+
+
+<p>移动互联网体现在可以<strong>随时随地无缝接入互联网</strong>，这就带来了无数的可能。而手机作为载体，App可以充分利用手机的各种硬件来实现各种各样的功能，抓住了人们的一个需求并去实现它。</p>
+
+<p>很多企业在移动互联网时代，也基于自己的移动发展战略，也纷纷推出了自己的App，自己也亲自体验了很多App。优秀的企业应用比如有Durex的宝宝，StarBucks咖啡闹钟，Uniqlo出品的一些App等，但很多企业App在<strong>交互和功能</strong>去挖掘，仅仅是跟风，推出自己的App和微信公众号，这样既起不到宣传企业的作用，也并没有领会到互联网思维。</p>
+
+<h3>2. 面向个人的App vs. 面向商业的App</h3>
+
+<hr />
+
+<p>作为App，就存在2种不同形式的App，一种是面向个人的，另外一种是面向商业的App。</p>
+
+<p>而一个App，在我看来都需要注重一下几点：</p>
+
+<ol>
+<li>需求的实现</li>
+<li>需求的准确性</li>
+<li>需求的完整性</li>
+<li>需求的便利性</li>
+<li>软件的可扩展性</li>
+<li>软件的容错性</li>
+</ol>
+
+
+<h4><1>. 面向商业</h4>
+
+<p>作为面向商业的App，也就是面向企业级别的用户。那么就需要考虑<em>企业的移动战略是什么</em>。需要做到什么程度，面对的用户是什么，有那些需求。而这些需求里面，优先级是什么？</p>
+
+<p>App是为了达成企业的哪些商业目标？是为了传播企业品牌、介绍和传播产品，还是建立消费者互动渠道？</p>
+
+<p>而对于很多企业APP来说，用户体验，交互设计的重心，应该放在针对强需求功能的细化和优化上，而不是视觉体验上。</p>
+
+<h4><2>. 面向个人</h4>
+
+<p>对于面向个人的App，个人认为用户体验的重要性应该排在第一位。需要根据需求设计出良好的交互。这里面的水也特别深，也需要自己多多思考，多体验一些App再来认真写一篇专门的文章。</p>
+
+<p>Todos</p>
+
+<h3>3. App的设计</h3>
+
+<hr />
+
+<p>关于App的设计，涉及到交互设计这个领域，有黔驴技穷的感觉。写到这，唯一的感觉，肚子里面的货太少，无奈啊！</p>
+
+<p>好吧，我再去修炼一些技术，再来发言。</p>
+
+<h4><strong><em>Long Luo Version0.1 Created at 2014/04/12 10:36 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Version0.1 Completed at 2014/04/13 22:26 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140412/tips_for_making_a_better_app/'>http://longluo.github.io/blog/20140412/tips_for_making_a_better_app/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android学习资源(持续更新中)]]></title>
+    <link href="http://longluo.github.io/blog/20140409/android_develop_references/"/>
+    <updated>2014-04-09T22:26:13+08:00</updated>
+    <id>http://longluo.github.io/blog/20140409/android_develop_references</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>下面列举一些收藏的资源，用于学习参考：</p>
+
+<h4>1. Android API Guides</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://developer.android.com/guide/components/index.html" title="Android API Guides"><strong>Android</strong> API Guides:</a></li>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=android/reference" title="OSChina Android API Guides"><strong>OSChina</strong> Android API Guides：</a></li>
+</ol>
+
+
+<h4>2. Java Develop Kit References</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=jdk_7u4" title="JDK7 English"><strong>JDK7</strong> English：</a></li>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=jdk-zh" title="JDK6 Chinese API"><strong>JDK6</strong> Chinese API：</a></li>
+</ol>
+
+
+<!--more-->
+
+
+<h4>3. Performances</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://developer.android.com/training/best-performance.html" title="Best Practices for Performance">Best Practices for Performance：</a></li>
+<li><a href="http://www.trinea.cn/android/performance/" title="性能优化系列总篇">性能优化系列总篇</a></li>
+<li><a href="http://www.trinea.cn/android/android-imagecache/">图片ImageCache技术</a></li>
+<li><a href="http://www.trinea.cn/android/android-imagesdcardcache/" title="图片SD卡缓存优化">图片SD卡缓存技术</a></li>
+<li><a href="http://www.trinea.cn/android/database-performance/" title="性能优化之数据库优化">性能优化之数据库优化</a></li>
+<li><a href="http://www.trinea.cn/android/android-http-cache/" title="Android网络缓存">Android网络缓存</a></li>
+</ol>
+
+
+<h4>4. Developing</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://www.importnew.com/3988.html">Android开发者必知的开发资源</a></li>
+<li><a href="http://stackoverflow.com/tags/android/">StackOverFlow@Android</a></li>
+</ol>
+
+
+<h4>5. OpenSource App</h4>
+
+<hr />
+
+<ol>
+<li></li>
+</ol>
+
+
+<h4><strong><em>Long Luo Version0.1 Created at 2014/4/8 10:54:32 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Version0.2 Update at 2014/4/9 19:45:07 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140409/android_develop_references/'>http://longluo.github.io/blog/20140409/android_develop_references/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android App性能优化笔记之一:性能优化是什么及为什么?]]></title>
+    <link href="http://longluo.github.io/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft/"/>
+    <updated>2014-04-07T14:19:28+08:00</updated>
+    <id>http://longluo.github.io/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>周星驰的电影《功夫》里面借火云邪神之口说出了一句至理名言：“<strong>天下武功，唯快不破</strong>”。</p>
+
+<p>在移动互联网时代，同样如此，留给一个公司的窗口往往只有很短的时间，如何把握住这个时机，迅速开发出产品，成为至关重要的一环。相对传统互联网时代的PC产品，<strong>用户对移动端产品的容忍度更低</strong>。而一款移动应用在推出的时候可能只是接近完成的状态，这就需要通过<strong>快速的迭代开发来更新产品，不断完善产品来留住用户</strong>。同时，通过更新产品也能唤醒一些沉默用户，让一些原本下载了应用但使用次数非常少的用户给该应用多一次机会。</p>
+
+<p>所以<strong><em>快速迭代</em></strong>成为移动互联网时代的一个重要生存法则。</p>
+
+<h3>1. 为什么需要性能优化？</h3>
+
+<hr />
+
+<p>上面说到，在时间窗口期内开发出产品是极端重要的，但是虽然基本功能我们实现了，但是开发出来的产品代码运行的效率怎么样呢？我们的App用户给用户的体验如何呢？</p>
+
+<ul>
+<li>我们的App在低端机上经常ANR、闪退、卡顿等</li>
+<li>我们的App在其他分辨率上显示惨不忍睹？</li>
+<li>我们的App在不同网络的情况下如何处理的</li>
+<li>&hellip;</li>
+</ul>
+
+
+<!--more-->
+
+
+<p>我们的App体验如此之差，导致大量的用户流失。这些迫使我们认识到性能优化是非常重要，某种程度上甚至超过了新功能的开发。</p>
+
+<p>也验证了一句话：“<strong><em>别人有的我们也有，而且比他们的要好要快。</em></strong>”</p>
+
+<p>做Android开发已经3年了，期间也开发了不少App了，最开始写App的时候，只追求迅速完成所需要的功能，后来随着对相关知识的熟悉，再回头看之前写的代码，也知道有哪些改进和优化的手段了。<strong><em>性能优化</em></strong>，一方面需要自身能力的提高，另外一方面，也需要有意识去学习优化技术，并应用于自身项目的开发中。</p>
+
+<h3>2. 性能优化技术</h3>
+
+<hr />
+
+<p>我们的Android App开发除了NDK之外，使用的都是Java语言，而Java语言是一种基于虚拟机JVM运行的语言，所以相比C/C++语言来说，效率是比较低的。Java需要占用大量内存来换取执行速度，而不定期的GC机制，直接导致Android界面的卡顿现象。</p>
+
+<p>相比Apple的iOS，Android要面对无数不同的硬件组合，分辨率，驱动等，导致App质量参差不齐。</p>
+
+<p>性能优化技术，简而言之，就是<strong><em>提高我们程序的性能</em></strong>，让我们的应用更快，更少使用CPU资源，更少使用内存。</p>
+
+<h3>3. 性能优化笔记提纲</h3>
+
+<hr />
+
+<p>性能优化是一个非常大的课题，在这里目前准备写8篇笔记来记录，提纲如下：</p>
+
+<ol>
+<li>如何书写优秀代码？</li>
+<li>程序性能测试</li>
+<li>App内存优化</li>
+<li>图片缓存技术(ImageCache及Image SD卡缓存技术)</li>
+<li>数据库优化</li>
+<li>网络优化</li>
+<li>App UI优化</li>
+<li>性能调优工具</li>
+</ol>
+
+
+<h4><strong><em>Long Luo Version0.1 Created at PM14:10 April 12th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Version0.1 Completed at PM15:25 April 12th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft/'>http://longluo.github.io/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[游戏引擎学习笔记:介绍,架构,设计及实现]]></title>
+    <link href="http://longluo.github.io/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop/"/>
+    <updated>2014-04-07T00:17:51+08:00</updated>
+    <id>http://longluo.github.io/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>从小到大，虽然玩过的游戏不少，但是从写程序开始，目前为此仅仅写过2个游戏。其一是2011年在MTK平台下写的贪食蛇，其二是2010年在嵌入式开发板上写过一个迷宫的游戏。第一个代码量大概有3000行左右，第二个有2000行左右。</p>
+
+<p>这2个游戏都很简单，而且网上有很多现成的例子可供参考，因此难度也比较低。</p>
+
+<p>这2天把拖延了好久的<strong><em>《Android应用开发揭秘》</em></strong>的游戏引擎的那一章看完了，收获还是很大，在此写一篇读书笔记。</p>
+
+<p>关于Game Engine，我能想到的几个问题：</p>
+
+<ol>
+<li>游戏引擎是什么？</li>
+<li>Game Engine是为了解决什么问题？</li>
+<li>Game Engine的架构是什么？</li>
+<li>如何设计一款游戏引擎？</li>
+<li>游戏引擎包含哪些模块？</li>
+</ol>
+
+
+<p>下面就来探讨几个问题：</p>
+
+<!--more-->
+
+
+<h3>1. Game Engine是什么？</h3>
+
+<p>游戏产业在全球来看是一个很大的产业，一款游戏大作包含了非常多的元素。游戏涉及到剧情、人物、任务、关卡、地图、画质、美术、音乐、网络等多种元素。开发一款游戏实际上需要耗费非常多的资源，据说North Star的《GTA V》耗资几亿美元。正因为如此，在开发项目过程中，尽可能复用之前项目成功的东西就非常重要。</p>
+
+<p>一款游戏中，<em>Game Engine直接控制着剧情、关卡、美工、音乐、操作</em>等内容，将游戏的所有元素捆绑在一起。</p>
+
+<p>一般来说，一款Game Engine需要包含以下模块：</p>
+
+<ol>
+<li>基本框架（渲染、逻辑、物理 等等各部分如何组装）</li>
+<li>资源管理</li>
+<li>渲染</li>
+<li>基本逻辑（网游还要解决逻辑的同步问题）</li>
+<li>物理（有时候和逻辑合并）</li>
+</ol>
+
+
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;-分割线，以下是重要但较为独立的部分&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;</p>
+
+<pre><code>6. UI
+7. 音乐音效
+8. 网络
+9. 脚本（有些类型的游戏引擎需要脚本和逻辑的关联性非常强，有些脚本则比较独立）
+</code></pre>
+
+<h3>2. Game Engine为了解决什么问题？</h3>
+
+<p><strong>Game Engine实际上有效的减少开发者编写程序时的冗余劳动，同时增强游戏的可移植性</strong>。</p>
+
+<p>Engine就是游戏的框架，我们需要往框架中填充内容就可以形成一个游戏。</p>
+
+<p>引擎，就是一系列的工具和生产链，像Unreal 3，Unity这样的成熟引擎，用起来非常方便，就是因为它的关卡/场景编辑器十分宜用，支持多种脚本语言。这类引擎运用恰当的话，理论上能将关卡调试和物件流水线的大部分工作从程序员那里完全移出。</p>
+
+<h3>3. Game Engine的架构</h3>
+
+<pre><code>游戏 = 引擎(程序) + 资源(图像、声音、动画等)
+</code></pre>
+
+<p>目前的Game Engine的架构都是Model-View-Controller架构，逻辑和显示分开，由一个逻辑控制流来协调Client的请求和Server的行动。</p>
+
+<ol>
+<li>View: 负责界面回执</li>
+<li>Controller：处理工作流程的创建和种植，用户输入，各种事件的处理</li>
+<li>Model: 模型、逻辑，程序的功能实现</li>
+</ol>
+
+
+<p><strong>消息循环->更新数据->绘制各节点</strong> 这是绘制的基本结构基本不会有大的改变。</p>
+
+<p>各种引擎的变种很大部分是在游戏逻辑上的封装。脚本也好，直接写代码也好。比如较为古老的数据与函数分离，以C语言为代表。大行其道的类结构。以c++为代表。以及现在光环日耀的CBSE，基于组件的架构</p>
+
+<h3>4. 如何设计一款游戏引擎？</h3>
+
+<h4><1>. 结构设计及功能设计</h4>
+
+<p>Game Engine的设计包括结构设计、功能设计及注意事项。</p>
+
+<p>Game Engine包括<strong>图形引擎</strong>、脚本引擎、物理引擎、工具模块、音效引擎、网络组件、事件组件等。</p>
+
+<p>Android游戏主要包括一个Activity类、流程控制类、游戏线程类和游戏对象类。Activity类是游戏的执行单元，负责游戏生命周期的控制。</p>
+
+<p>流程控制：提供在游戏中多个界面之间切换方法；</p>
+
+<p>游戏线程：不断监测可能发生的各种事件，计算游戏状态，刷新屏幕。</p>
+
+<h4><2>. 注意事项：</h4>
+
+<p>手机游戏的主要问题是 硬件限制 及 电池瓶颈。CPU及内存不足，屏幕大小，音效等多方面限制，在设计时需要注意这些方面。</p>
+
+<h3>5. 实现一款游戏引擎</h3>
+
+<p>游戏引擎<strong>只是一款炒菜的炒菜锅，但有了好的炒菜锅不一定能保证炒出好的菜</strong>。</p>
+
+<p>游戏引擎的实现就很复杂了，需要按照上一节的架构及功能设计去编码实现，目前绝大部分都是面向对象编程，设计好各种类。比如人物、NPC、道具、动画、动植物等等。有余力的同学可以去研究研究。</p>
+
+<p>最近流行的一些游戏，其实也并不需要多么NB的游戏引擎，充分发掘用户的痛点才能设计出一款好的游戏。</p>
+
+<p>目前有很多开源的Game Engine可供大家研究，比如Unity3D, Box2D等，大家可以去网上搜索并研究。</p>
+
+<h3>6. 对手机游戏的展望</h3>
+
+<p>这2年玩过的手机游戏也不少，我也来谈谈一款好的手机游戏应该具备哪些特征：</p>
+
+<ol>
+<li><strong>上手容易，精通不易</strong>，且玩且珍惜。手游面向的是大众，所以上手难的游戏就一律pass，必须保证游戏具有简单性，让玩家一安装就可以玩的；</li>
+<li><strong><em>可中断，时间短</em></strong>。一般玩游戏，都是在公交地铁上等碎片时间里，所以提供的是短时间的娱乐效果，允许在游戏和工作模式之间顺利切换；</li>
+<li><strong>必须加入SNS元素</strong>：一款好的手游应该具有社交元素，可以加入LBS寻找周围的玩家，或和好友一起玩游戏及互动，抑或者认识新的好友。因为手游都很简单，所以要留住玩家，加入SNS可以留住玩家；</li>
+<li>充分利用手机的各项优点：手机的优点比如便携性，私密性，即使抵达。手机是我们身体的延伸，所以一款好的游戏应该充分利用手机的一些传感器、摄像头、网络、蓝牙，找出特点，以便设计出一款优秀的游戏。</li>
+<li>&hellip;</li>
+</ol>
+
+
+<h4><strong><em>Long Luo Created at AM00:17 April 07th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Completed at PM21:35 April 07th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop/'>http://longluo.github.io/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[学车思考之一:方向盘转多少,车轮就转多少度对吗?]]></title>
+    <link href="http://longluo.github.io/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao/"/>
+    <updated>2014-04-06T19:43:27+08:00</updated>
+    <id>http://longluo.github.io/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>最近一个月在驾校学车，前2次去练车，总是<strong><em>不得要领</em></strong>，连曲线行驶开不好，被教练狂K。经历了当学渣的痛苦之后，痛定思痛，立志成为<strong>学霸</strong>。</p>
+
+<h4>1. 面临问题：</h4>
+
+<p>我分析遇到的问题之后，得出我面临的几个问题：</p>
+
+<ol>
+<li>方向盘打法不规范；</li>
+<li>离合器踩的不到位，车速偏快；</li>
+<li>不清楚方向盘转的度数和车轮转的度数关系；</li>
+<li>不记得当前车轮方向。</li>
+</ol>
+
+
+<!--more-->
+
+
+<p>清楚自己的问题就好办了，那就各个击破。</p>
+
+<p>昨天去实际操作了半个小时，果然大有进展。</p>
+
+<h4>2. 转向理论：</h4>
+
+<p>我学习新东西的时候，往往会学习下理论，就是搞清楚<strong><em>“为什么”</em></strong>的问题，目的是为了做到理论和实践相结合，才能真正掌握一个东西。</p>
+
+<p>首先目前的小汽车都是<strong>前置发动机前轮驱动</strong>的，之前我一直认为小汽车也是后驱的，这纠正了我的一个错误认识，简而言之，就是前轮带着汽车往前跑。</p>
+
+<p><strong>汽车前轮是转向轮，只有前轮才能改变方向</strong>，后轮是不能转变方向的，请看下面一张动态图：</p>
+
+<p><img src="http://blogresource.qiniudn.com/images/2014/Car/car_houlun.gif" alt="后轮无法左右移动" /></p>
+
+<p>汽车转弯时车轮状态：</p>
+
+<p><img src="http://blogresource.qiniudn.com/images/2014/Car/zhuanxiang.gif" alt="前置前驱" /></p>
+
+<p>我们在倒车和转弯各项操作的时候，就必须弄明白汽车转弯的机制和轨迹是什么？</p>
+
+<p><img src="http://blogresource.qiniudn.com/images/2014/Car/zhuanwan.gif" alt="转弯轨迹" /></p>
+
+<p>上面这张图很直观的展示了汽车在转弯的时候车辆的旋转中心和前后轮的轨迹。</p>
+
+<p>了解了理论知识，那么在倒车时应该注意些什么呢？</p>
+
+<p><img src="http://blogresource.qiniudn.com/images/2014/Car/daoche_xiazai.gif" alt="倒车注意事项" /></p>
+
+<h4>3. 方向盘与转向：</h4>
+
+<p>之前我一直没弄明白方向盘转的角度和车轮转的角度的关系，还特意请教了一位有车的同事，结果他告诉我1：1的关系，但是我一直不太相信。</p>
+
+<p>通过在网上寻找资料，了解了很多信息：</p>
+
+<pre><code>车轮左转到底是45°，右转到底也是45°，也就是说车轮从左打死状态到右打死状态车轮转了90°。
+不同的车辆转向比都不同，在一些高档的轿车和跑车上面还可以调节转向比。
+普通汽车的转向比一般是8：1，一些大客车和火车上面是12：1或16：1
+</code></pre>
+
+<p>我们在汽车行驶过程中，<strong><em>方向盘的转向和车轮的转向和汽车的行进速度有关</em></strong>，确切的说是：</p>
+
+<pre><code>车子转动的度数是前轮度数对位移的积分
+</code></pre>
+
+<p>实际开车过程中，需要根据当前情况来灵活的调整方向盘。</p>
+
+<h4>4. 小结：</h4>
+
+<p>写完了这些，希望对大家有所帮助，也希望自己早日拿到驾照，以前不明白这方面知识的同学也可以涨点姿势。</p>
+
+<p>开车是需要多多练习，熟能生巧:&ndash;)</p>
+
+<h4><strong><em>Long Luo at PM19:43 ~ PM20:25 April 06th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao/'>http://longluo.github.io/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[介绍一个提高Android ListView或GridView的Smoothie库]]></title>
+    <link href="http://longluo.github.io/blog/20140215/introduce_a_android_listview_and+gridview_performence_library_smoothie/"/>
+    <updated>2014-02-15T11:41:06+08:00</updated>
+    <id>http://longluo.github.io/blog/20140215/introduce_a_android_listview_and gridview_performence_library_smoothie</id>
+    <content type="html"><![CDATA[<h4><strong><em>翻译 By Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://lucasr.org/2013/01/06/introducing-smoothie/">Introducing Smoothie</a></h4>
+
+<hr />
+
+<p><img src="http://blogresource.qiniudn.com/2014/Android/smoothie.png" alt="smoothie" /></p>
+
+<p><a href="http://pattrnapp.com/">Pattrn</a> UI中的很大一部分是在滑动时从云端获取图片列表。所以我花了相当长的一段时间去调试，以获得滑动时的体验尽可能的流畅。在过去的几周里，我一直在试图解耦代码，完成了一个很小的库：<a href="https://github.com/lucasr/smoothie">Smoothie</a>。</p>
+
+<p><strong><em>Smoothie</em></strong>提供了一个简单的API来异步加载<em>ListView/GridView</em>的项目，以和UI线程分离。它做了所有你所期望做的事情，加载项目变得可见，取消要求回收的View对应的项目等。但它所完成的还不止这些。</p>
+
+<!--more-->
+
+
+<p><strong><em>Smoothie</em></strong>是<strong>手势识别</strong>：在Fling手势时，它会必须发起加载项目请求；在滑动列表时，当你的手指按下时，将会启用增量加载项目请求。此外，它支持当前屏幕外项目预加载功能，当你滑动时，可以减少加载占位符类型的项目数。说穿来，<strong><em>Smoothie</em></strong>使用了一个支持可以阻塞队列动态优先执行的的线程池。在屏幕上滑动时，屏幕外即将可见的项目加载请求将动态的获取更高的优先级。</p>
+
+<p>那么，怎么使用它呢？很简单：</p>
+
+<ol>
+<li><p>首先在你的布局文件中增加一个<a href="https://github.com/lucasr/smoothie/blob/master/library/src/org/lucasr/smoothie/AsyncListView.java">AsyncListView</a>或者<a href="https://github.com/lucasr/smoothie/blob/master/library/src/org/lucasr/smoothie/AsyncGridView.java">AsyncGridView</a>，只需要增加一个额外传递的方法到响应的父类中。</p></li>
+<li><p>然后实现一个和你的应用程序加载和显示项目逻辑一致的<a href="https://github.com/lucasr/smoothie/blob/master/library/src/org/lucasr/smoothie/ItemLoader.java">ItemLoader</a>。你将需要重写下面四种方法：<em>getItemParams()</em>, <em>loadItem()</em>, <em>loadItemFromMemory()</em>以及<em>displayItem()</em>。</p></li>
+<li><p>最后在<em>ItemLoader</em>中建一个<a href="https://github.com/lucasr/smoothie/blob/master/library/src/org/lucasr/smoothie/ItemManager.java">ItemManager</a>，同时把它和目标<em>AsyncListView</em>或者<em>AsyncGridView</em>关联起来。</p></li>
+</ol>
+
+
+<p>在你的<em>ListView/GridView</em>控件需要异步加载时，考虑下把<strong><em>Smoothie</em></strong>作为你的轻量骨架。您可以轻松地连接您自己的图像加载/缓存框架在里面。例如，一个典型的示例应用，<a href="https://github.com/chrisbanes/Android-BitmapCache">Android-BitmapCache</a>实现了<a href="https://github.com/lucasr/smoothie/blob/master/samples/bitmap-cache/src/org/lucasr/smoothie/samples/bitmapcache/PatternsListLoader.java">ItemLoader</a>使用一个简单的淡入淡出的动画来显示图像。</p>
+
+<p>除了在代码中的API文档，还可以看看App示例，一边更好地了解如何使用该库。请记住，API是​不是最终版本哦。目前反响是非常好的！</p>
+
+<p><strong>Enjoy it:&ndash;)</strong></p>
+
+<h4><strong><em>Long Luo at AM11:30 ~ 12:42 Feb. 15th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140215/introduce_a_android_listview_and+gridview_performence_library_smoothie/'>http://longluo.github.io/blog/20140215/introduce_a_android_listview_and+gridview_performence_library_smoothie/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[提升Android ListView性能的几个技巧]]></title>
+    <link href="http://longluo.github.io/blog/20140214/some_tips_about_android_listview_performence/"/>
+    <updated>2014-02-14T15:22:10+08:00</updated>
+    <id>http://longluo.github.io/blog/20140214/some_tips_about_android_listview_performence</id>
+    <content type="html"><![CDATA[<h4><strong><em>翻译 Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://lucasr.org/2012/04/05/performance-tips-for-androids-listview/">Performance Tips for Android’s ListView</a></h4>
+
+<pre><code>译者注：
+1. 由于这是技术文章，所以有些词句使用原文，表达更准确。
+2. 由于水平有效，有些地方可能翻译的不够准确，如有不当之处，敬请批评指正；
+3. inflation这个词一直找不到特别好的中文翻译。
+</code></pre>
+
+<h2>ListView如何运作的？</h2>
+
+<hr />
+
+<p><em>ListView</em>是设计应用于对<strong>可扩展性和高性能要求</strong>的地方。实际上，这就意味着<em>ListView</em>有以下2个要求：</p>
+
+<ol>
+<li>尽可能少的创建View；</li>
+<li>只是绘制和布局在屏幕上可见的子View。</li>
+</ol>
+
+
+<p>理解第一点很简单：通过布局xml文件在创建View并显示是很昂贵耗时耗资源的操作。尽管布局文件已经编译打包成了二进制形式以便于更高效的语法解析，但是创建View仍然需要通过一个特殊的XML树，并实例化所有需要响应的View。</p>
+
+<p><em>ListView</em>通过回收一些不可见的Views，通常在Android源码中称为“<em>ScrapView</em>(废弃的View)”来解决这个问题。这及意味着开发者只需要简单的更新每行的内容而不需要针对每个单独的行的布局来创建View。</p>
+
+<p>为了实现第二点，在我们滑动屏幕时，<em>ListView</em>通过使用View回收器来增加低于或者高于当当前窗口的Views，并当前活动的Views移动到一个可回收池中。这样的话，<em>ListView</em>只需要在内存中保持足够多的Views去填充分配空间中的布局和一些额外的可回收Views，即使当你的Adapter有上百个items的适合。它会使用不同的方法去填充行之间的空间，从顶部或者底部等等，具体取决于窗口是如何变化的。</p>
+
+<!--more-->
+
+
+<p>下面这个图很直观的展示了当你按下ListView的时候发生了什么：</p>
+
+<p><img src="http://blogresource.qiniudn.com/2014/Android/listview_tips.png" alt="ListView" /></p>
+
+<p>通过上述介绍，相比我们已经熟悉了<em>ListView</em>的这种机制，让我们继续前往技巧部分。正如上述介绍的，在滑动时，<em>ListView</em>通过动态的创建和回收很多View，实现了尽可能地让Adapter的<em>getView()</em>轻量。所有的技巧都是通过多种方法让<em>getView()</em>更快。</p>
+
+<h2>View的回收</h2>
+
+<hr />
+
+<p>当<em>ListView</em>每次需要在屏幕上显示新的一行的时候，会从其Adapter中调用<em>getView()</em>的方法。众所周知，<em>getView()</em>方法有3个参数：行的位置， convertView以及父ViewGroup。</p>
+
+<p>参数<em>convertView</em>说穿来就是之前讲述的ScrapView。当<em>ListView</em>要求更新一行的布局时，<em>convertView</em>是一个非空值。因此，当<em>convertView</em>值非空时，你仅仅需要<em>更新内容</em>即可，而不需要重新一个新行的布局。<em>getView()</em>在Adapter中一般是如下的形式：</p>
+
+<pre><code>public View getView(int position, View convertView, ViewGroup parent) {
+    if (convertView == null) {
+        convertView = mInflater.inflate(R.layout.your_layout, null);
+    }
+
+    TextView text = (TextView) convertView.findViewById(R.id.text);
+    text.setText("Position " + position);
+
+    return convertView;
+}
+</code></pre>
+
+<h2>View Holder如何写的模板</h2>
+
+<hr />
+
+<p>Android很常见的一个操作就是在布局文件中找到一个内部的View。通常是使用一个<strong><em>findViewById()</em></strong>的View方法来实现的。这个<strong><em>findViewById()</em></strong>方法在View树中，根据一个View ID，会递归的被调用来找到其子树。虽然在静态UI布局中使用<strong><em>findViewById()</em></strong>是完全正常的。但是，在滑动时，<em>ListView</em>调用其Adapter中的<em>getView()</em>是非常频繁的。<strong><em>findViewById()</em></strong>可能会影响<em>ListView</em>滑动时的性能，尤其是你的行布局是很复杂的时候。</p>
+
+<p>寻找一个充气布局内的内部观点是在Android上最常用的操作之一。这通常是通过一个名为findViewById（查看方法完成）。此方法将递归经过视图树寻找一个孩子用给定的ID码。静态的UI布局使用findViewById（）是完全正常，但正如你所看到的，ListView中滚动时调用适配器的getView（）非常频繁。 findViewById（）可能perceivably击中ListViews，尤其是滚动的性能，如果你行的布局是不平凡的。</p>
+
+<p>View Holder的模式就是减少在Adapter中<em>getView()</em>方法中调用<em>findViewById()</em>次数。实际上，View Holder是一个轻量级的内部类，用于直接引用到所有内部views。在创建View之后，你可以在每行的View存储为一个标签。通过这种方法，只需要在初次创建布局的时候调用<strong><em>findViewById()</em></strong>。下面是一个使用上述方法的View Holder模板的代码示例：</p>
+
+<pre><code>public View getView(int position, View convertView, ViewGroup parent) {
+    ViewHolder holder;
+
+    if (convertView == null) {
+        convertView = mInflater.inflate(R.layout.your_layout, null);
+
+        holder = new ViewHolder();
+        holder.text = (TextView) convertView.findViewById(R.id.text);
+
+        convertView.setTag(holder);
+    } else {
+        holder = convertView.getTag();
+    }
+
+    holder.text.setText("Position " + position);
+
+    return convertView;
+}
+
+private static class ViewHolder {
+    public TextView text;
+}
+</code></pre>
+
+<h2>异步加载</h2>
+
+<hr />
+
+<p>很多时候，Android应用在<em>ListView</em>每行中显示一些多媒体内容，比如图片等。在Adapter中的<em>getView()</em>使用应用内置的图片资源还是不会出什么问题的，因为可以存储在Android的高速缓存中。但当你想多态的显示来自本地磁盘或网络的内容时，例如缩略图，简历图片等。在这种情况下，你可能不希望直接在Adapter中的<em>getView()</em>加载它们，因为<a href="http://blog.ometer.com/2008/09/07/synchronous-io-never-ok/">IO进程会阻塞UI线程</a>。如果这样做的话，<em>ListView</em>就看起来非常卡顿。</p>
+
+<p>在一个单独的线程，如果想要运行的所有行的IO操作或任何高负载CPU限制的异步操作。其中的技巧就是要做到符合<em>ListView</em>的回收行为。例如，如果在Adapter中的<em>getView()</em>中，使用<em>AsyncTask</em>的加载去加载资料图片，在<em>AsyncTask</em>完成之前，你正在加载的图片View就有可能被回收用于其他地方。所以，一旦异步操作完成的同时，需要一种机制来知道如果相应的View有没有被回收。</p>
+
+<p>一个简单的方法来实现这一目标是通过附加一些标识该行与它相关的View的信息。然后，当异步操作完成的适合，检查目标行的View和标识的View是否一致。实现这一目标的方法很多。下面是实现这种方法的一个很简单的示例：</p>
+
+<pre><code>public View getView(int position, View convertView,
+        ViewGroup parent) {
+    ViewHolder holder;
+
+    ...
+
+    holder.position = position;
+
+    new ThumbnailTask(position, holder)
+            .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+
+    return convertView;
+}
+
+private static class ThumbnailTask extends AsyncTask {
+    private int mPosition;
+    private ViewHolder mHolder;
+
+    public ThumbnailTask(int position, ViewHolder holder) {
+        mPosition = position;
+        mHolder = holder;
+    }
+
+    @Override
+    protected Cursor doInBackground(Void... arg0) {
+        // Download bitmap here
+    }
+
+    @Override
+    protected void onPostExecute(Bitmap bitmap) {
+        if (mHolder.position == mPosition) {
+            mHolder.thumbnail.setImageBitmap(bitmap);
+        }
+    }
+}
+
+private static class ViewHolder {
+    public ImageView thumbnail;
+    public int position;
+}
+</code></pre>
+
+<h2>人机交互知识</h2>
+
+<hr />
+
+<p>做到在每一行异步加载很多资源，是一个高性能的<em>ListView</em>的必经之路。但是，在滑动屏幕时，如果你一味的在每一个<em>getView()</em>调用里面都去启动一个异步的操作，造成的结果就是你会浪费大量资源。因为行被频繁回收，造成大部分返回的结果会被丢弃。</p>
+
+<p>考虑到实际的人机交互情况，在<em>ListView</em>适配器中，在每一行中都不应该去触发任何异步操作。也就是说，在<em>ListView</em>中有fling(快速滑动)操作时，启动任何异步操作都没有任何意义。一旦滚动停止或即将停止，才是开始真正显示每行的内容的时候。</p>
+
+<p>我不会发布一个代码示例贴在这里，因为其中涉及到的代码太多。Romain Guy写了一个很经典的应用：<a href="http://code.google.com/p/shelves/">Shelves app</a>，其中有一个很好的的<a href="https://code.google.com/p/shelves/source/browse/trunk/Shelves/src/org/curiouscreature/android/shelves/activity/ShelvesActivity.java">示例</a>。当<strong><em>GridView</em></strong>停止滑动时不做其他事情时，它就开始触发从而去异步加载书的封面资源。即使在滑动时，你也可以展示缓存中的内容，通过使用memory cache来平衡交互。这真是个好主意！</p>
+
+<h2>以上</h2>
+
+<hr />
+
+<p>我强烈推荐你看下Romain Guy和Adam Powell的关于<em>ListView</em>的<a href="http://www.youtube.com/watch?v=wDBM6wVEO70">讨论</a>，里面涵盖了很多这篇文章的东西。你可以看看<a href="https://play.google.com/store/apps/details?id=org.lucasr.pattrn">Pattrn</a>，可以看到这里面的几个技巧是如何在应用中运用的。</p>
+
+<p>希望它是你在Android开发中一个很有用的参考:&ndash;)</p>
+
+<h4><strong><em>Long Luo at PM17:30 Feb. 14th, 2014 @Shenzhen, China.</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140214/some_tips_about_android_listview_performence/'>http://longluo.github.io/blog/20140214/some_tips_about_android_listview_performence/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[2014过年反思与总结]]></title>
+    <link href="http://longluo.github.io/blog/20140210/2014_2013_review/"/>
+    <updated>2014-02-10T21:52:37+08:00</updated>
+    <id>http://longluo.github.io/blog/20140210/2014_2013_review</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140210/2014_2013_review/'>http://longluo.github.io/blog/20140210/2014_2013_review/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android UI Layout总结系列之篇之5大布局]]></title>
+    <link href="http://longluo.github.io/blog/20140123/android_ui_layout_summay_5_layouts/"/>
+    <updated>2014-01-23T20:16:36+08:00</updated>
+    <id>http://longluo.github.io/blog/20140123/android_ui_layout_summay_5_layouts</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>在一个Android应用中，Layout是开发中的一个很重要环节，Layout是组成UI不可缺少的一部分。</p>
+
+<h2>Android UI 核心类</h2>
+
+<hr />
+
+<h4>在Android应用构建UI的方法有以下几种：</h4>
+
+<ol>
+<li>单纯使用JAVA代码</li>
+<li>使用XML完全定义界面</li>
+<li>结合使用两者，在XML中定义，在JAVA中引用和修改</li>
+</ol>
+
+
+<h4>Android SDK中关于UI的核心类：</h4>
+
+<p>Android.view.View和android.view.ViewGroup</p>
+
+<p>android中的常见UI控件均会扩展View和ViewGroup其中有一部分是专门用来控制其子View位置和大小，这些类我们称为布局管理器。</p>
+
+<!--more-->
+
+
+<h4>ViewGroup</h4>
+
+<p>1.LayoutParams是ViewGroup内部类，包含了ViewGroup的布局参数，用来告诉它们的父类它们想怎么在父类中布局（大小和位置），所有在LayoutParams及其子类中定义的布局参数在xml中定义都是通过layout_***定义的。</p>
+
+<p>LayoutParams只提供了两个参数设定：</p>
+
+<pre><code>layout_width  元素的高度(fill_parent | match_parent | wrap_content | *dip)
+layout_height 元素的宽度(同上)                  
+</code></pre>
+
+<p>2.MarginLayoutParams也是ViewGroup一个内部类，它继承了LayoutParams类，用来扩展LayoutParams的属性，设置参数。</p>
+
+<p>MarginLayoutParams添加了四个参数设定：</p>
+
+<pre><code>layout_marginLeft       相对于本元素左边界的偏移
+layout_marginRight      相对于本元素右边界的偏移
+layout_marginTop，     相对于本元素上边界的偏移
+layout_marginBottom     相对于本元素下边界的偏移
+</code></pre>
+
+<p>以上的两种Layout参数，所有布局中的子ViewGroup和子View都可以使用</p>
+
+<p><strong>下面讲述5种布局：</strong></p>
+
+<h2>1.Linear Layout (线性布局)</h2>
+
+<hr />
+
+<p>线性布局是Android布局中最简单的布局，也是最常用，最实用的布局。</p>
+
+<p>android:orientation线形布局的对齐方式 ： vertical(垂直) 和 horizontal(水平)</p>
+
+<p>LayoutParams中的特殊参数:</p>
+
+<pre><code>layout_weight  权值
+layout_gravity 相对于父元素的重力值(默认top|left)：
+(top|bottom|left|right|center_vertical|fill_vertical |center_ horizontal 
+|fill_ horizontal | center| fill)
+</code></pre>
+
+<h4>LinearLayout有两个非常相似的属性：</h4>
+
+<pre><code>android:gravity
+android:layout_gravity
+</code></pre>
+
+<p><strong>他们的区别在于：</strong></p>
+
+<ul>
+<li><p>android:gravity属性是对该view中内容的限定．比如一个button 上面的text. 你可以设置该text相对于view的靠左，靠右等位置．</p></li>
+<li><p>android:layout_gravity是用来设置该view相对与父view的位置．比如一个button在linearlayout里，你想把该button放在linearlayout里靠左、靠右等位置就可以通过该属性设置．</p></li>
+</ul>
+
+
+<p>android:gravity用于设置View中内容相对于View组件的对齐方式，而android:layout_gravity用于设置View组件相对于Container的对齐方式。</p>
+
+<p>原理跟android:paddingLeft、android:layout_marginLeft有点类似。如果在按钮上同时设置这两个属性。</p>
+
+<pre><code>android:paddingLeft="30px"  按钮上设置的内容离按钮左边边界30个像素
+android:layout_marginLeft="30px"  整个按钮离左边设置的内容30个像素
+</code></pre>
+
+<p>下面回到正题， 我们可以通过设置android:gravity=&ldquo;center&#8221;来让EditText中的文字在EditText组件中居中显示；</p>
+
+<p>同时我们设置EditText的android:layout_gravity=&ldquo;right&#8221;来让EditText组件在LinearLayout中居右显示。看下效果：</p>
+
+<pre><code>&lt;LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" &gt;
+    &lt;EditText
+        android:layout_width="wrap_content"
+        android:gravity="center"
+        android:layout_height="wrap_content"
+        android:text="one"
+        android:layout_gravity="right"/&gt;
+&lt;/LinearLayout&gt;
+</code></pre>
+
+<h2>2.Relative Layout (相对布局)</h2>
+
+<hr />
+
+<p><strong>RelativeLayout</strong>允许子元素指定他们相对于其它元素或父元素的位置（通过ID 指定）。因此，你可以以右对齐，或上下，或置于屏幕中央的形式来 排列两个元素。元素按顺序排列，因此如果第一个元素在屏幕的中央，那么相对于这个元素的其它元素将以屏幕中央的相对位置来排列。如果使用XML 来指定这个 layout ，在你定义它之前，被关联的元素必须定义。</p>
+
+<p>这个布局是最灵活的布局，因此复杂的布局我们多用这个布局。</p>
+
+<h4>LayoutParams中特殊的参数 :</h4>
+
+<h4><1>. 属性值为true或false</h4>
+
+<pre><code>android:layout_centerHrizontal            水平居中
+android:layout_centerVertical             垂直居中
+android:layout_centerInparent             相对于父元素完全居中
+android:layout_alignParentBottom          贴紧父元素的下边缘
+android:layout_alignParentLeft            贴紧父元素的左边缘
+android:layout_alignParentRight           贴紧父元素的右边缘
+android:layout_alignParentTop             贴紧父元素的上边缘
+android:layout_alignWithParentIfMissing   若找不到兄弟元素以父元素做参照物
+</code></pre>
+
+<h4><2>. 属性值必须为id的引用名&#8221;@id/id-name&#8221;</h4>
+
+<pre><code>android:layout_below               在某元素的下方
+android:layout_above               在某元素的上方
+android:layout_toLeftOf            在某元素的左边
+android:layout_toRightOf           在某元素的右边
+android:layout_alignBaseLine       该控件的baseline和给定ID的控件的Baseline对齐
+android:layout_alignTop            本元素的上边缘和某元素的的上边缘对齐
+android:layout_alignLeft           本元素的左边缘和某元素的的左边缘对齐
+android:layout_alignBottom         本元素的下边缘和某元素的的下边缘对齐
+android:layout_alignRight          本元素的右边缘和某元素的的右边缘对齐
+</code></pre>
+
+<h4><3>. 属性值为具体的像素值，如30dip，40px</h4>
+
+<pre><code>android:layout_marginBottom        离某元素底边缘的距离
+android:layout_marginLeft          离某元素左边缘的距离
+android:layout_marginRight         离某元素右边缘的距离
+android:layout_marginTop           离某元素上边缘的距离
+</code></pre>
+
+<h2>3.TableLayout (表格布局)</h2>
+
+<hr />
+
+<p>TableLayout 将子元素的位置分配到行或列中。一个TableLayout 由许多的TableRow 组成，每个TableRow 都会定义一个 row（事实上，你可以定义其它的子对象）。</p>
+
+<p>TableLayout 容器不会显示row 、cloumns 或cell 的边框线。每个row拥有0个或多个的cell；每个cell 拥有一个View对象。</p>
+
+<p>表格由列和行组成许多的单元格。表格允许单元格为空。单元格不能跨列，这与HTML 中的不一样。</p>
+
+<p>特殊的参数：</p>
+
+<pre><code>android:stretchColumns  伸展的列的索引
+android:shrinkColumns   收缩的列的索引
+android:collapseColumns 倒塌的列的索引(即销毁)
+</code></pre>
+
+<p>表示两行两列的一个表格。
+android:gravity=&ldquo;center&#8221;书面解释是权重比。其实就是让它居中显示。</p>
+
+<p>它还可以动态添加里面的每行每列。如下代码所示:</p>
+
+<pre><code>TableLayout tableLayout = (TableLayout) findViewById(R.id.table01);
+TableRow tableRow = new TableRow(this);
+TextView temp = new TextView(this);
+temp.setText("text的值");
+tableRow.addView(temp);
+</code></pre>
+
+<p>android:stretchColumns=&ldquo;1,2,3,4&rdquo; 它的意思就是自动拉伸1,2,3,4列。</p>
+
+<h2>4.AbsoluteLayout (绝对布局)</h2>
+
+<hr />
+
+<p>AbsoluteLayout可以让子元素指定准确的x/y坐标值，并显示在屏幕上。(0, 0)为左上角，当向下或向右移动时，坐标值将变大。</p>
+
+<p>AbsoluteLayout没有页边框，允许元素之间互相重叠（尽管不推荐）。我们通常不推荐使用</p>
+
+<p>AbsoluteLayout，除非你有正当理由要使用它，因为它使界面代码太过刚性，以至于在不同的设备上可能不能很好地工作。</p>
+
+<p>LayoutParams中特殊的参数 :</p>
+
+<pre><code>layout_x   x方向的坐标
+layout_y   y方向的坐标
+</code></pre>
+
+<h2>5.FrameLayout ( 帧布局 )</h2>
+
+<hr />
+
+<p>FrameLayout是最简单的一个布局对象。它被定制为你屏幕上的一个空白备用区域，之后你可以在其中填充一个单一对象。比如，一张你要发布的图片。所有的子元素将会固定在屏幕的左上角；你不能为FrameLayout中的一个子元素指定一个位置。后一个子元素将会直接在前 一个子元素之上进行覆盖填充，把它们部份或全部挡住（除非后一个子元素是透明的）。</p>
+
+<p>里面可以放多个控件，不过控件的位置都是相对位置</p>
+
+<p>LayoutParams中特殊的参数 :</p>
+
+<p>layout_gravity  相对于父元素的重力值(用法同LinearLayout)</p>
+
+<p><strong>注意事项：</strong></p>
+
+<ol>
+<li><p>各布局不要乱用各自的属性。比如把属于AbsoluteLayout布局的android:layout_x和android:layout_y用到LinearLayout布局或RelativeLayout布局，或者把RelativeLayout布局的 below，rightof等属性应用到其他布局中。这样做虽然不会报错，但是根本达不到我们需要的效果。</p></li>
+<li><p>关于android:layout_width=&ldquo;fill_parent&#8221;和android:layout_height=&#8221;wrap_content&rdquo; ，这是对每个布局宽和高的设置。wrap_content可表示随着其中控件的不同而改变这个布局的宽度或高度，类似于自动设置宽和高，fill_parent使布局填充整个屏幕，另外还有一种match_parent，它本质上和 fill_parent 一样，并从API Level8开始替代fill_parent。</p></li>
+</ol>
+
+
+<h4><strong><em>Created By Long Luo at 2014/1/21 14:20:57</em></strong></h4>
+
+<h4><strong><em>Completed By Long Luo at 2014/1/23 18:13:04 @Shenzhen, China.</em></strong></h4>
+
+<h3><a href="http://www.imlongluo.com/blog" title="Blog"> My Blog </a></h3>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140123/android_ui_layout_summay_5_layouts/'>http://longluo.github.io/blog/20140123/android_ui_layout_summay_5_layouts/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[情歌有多动听，你就有多怀疑]]></title>
+    <link href="http://longluo.github.io/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi/"/>
+    <updated>2014-01-21T22:41:43+08:00</updated>
+    <id>http://longluo.github.io/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<hr />
+
+<p>最近没怎么写东西的缘故是因为担心自己<strong>看的东西太少，读的东西太少，而想的太多</strong>。2014年的第一月也很快就要过去了，而我还没有对自己过去的一年里做出一点小结，就在这里随便扯几点吧！</p>
+
+<p>比如我的大学好友雷大才子，精通几门外语，学富五车，不仅文章写得好，又懂音乐，还会写诗作画，更是一名勤劳的Blogger，每次看他的博文，总能学到很多东西。</p>
+
+<h3>一、Destiny</h3>
+
+<hr />
+
+<p>年轻的时候我看到网上一些晒东晒西的帖子，总想：“等我到了他那个年纪，应该比TA出色的多吧！”</p>
+
+<p>但在工作了几年之后，我不得不认识到：<strong>和一些人相比，一方面由于家庭草根身份出身的巨大差距，另外一方面之前20多年的积累，导致除非出现巨大的机遇，否则人生绝无逆转的可能</strong>。关于这种巨大的差距，包括<strong>眼界、资源、机遇、圈子</strong>等，在第三节里面我会再认真的阐述。</p>
+
+<!--more-->
+
+
+<p>被认为是20世纪最有影响力的经济学家之一的Frank H. Knight有个著名的观点：“<strong>决定一个人富有的三个条件，一是出身，二是机遇，三是努力，而这三者之中，努力是最微不足道的。</strong>”</p>
+
+<p>我更喜欢英语的Destiny，因为让我想起一个词:Destination，我想一个人的命运也就意味着这个人一生中最终能到达什么样的地方。<strong>一个人就像森林里的一棵树苗，最初你长在什么地方，加上你的天性，除非特别的机遇，你能够长到多高是可以预见的</strong>。但是</p>
+
+<p>我很羡慕凤姐，有其是我这种间歇性缺乏自信的人，更需要学习凤姐的自信和强大的内心，相比漂在大城市的广大千千万屌丝蚁族来说，凤姐完成了大改变，不仅不用再重复父辈的贫困，很大程度的改变了社会地位，也不需要像天朝这种Hard模式活动这么累了。</p>
+
+<p>即使凤姐不去USA，比起绝大多数打工仔打工妹来说，凤姐上电视台，接受各种采访，人生经历也足够丰富。</p>
+
+<p>2013的经历也许足够丰富，只是自己缺乏总结，导致又被同样的石头绊倒了2次。是时候好好回顾下了，做出改变。</p>
+
+<pre><code>除了老婆孩子不能变之后，其他的统统都要变。
+                                    ---李健熙
+</code></pre>
+
+<h3>二、这些年来的折腾</h3>
+
+<hr />
+
+<p>2013年自己折腾了不少，写了一些技术博客，也写了一些日志。</p>
+
+<p>也许是小时候太没见过世面了，导致长大后努力想体验各种东西，到各种地方，了解各种知识，满足自己旺盛的好奇心和欲望。</p>
+
+<p>建了个个人主页，折腾了html/css/php/js的知识，把网站搞的高大上点，虽然大部分是copy的。</p>
+
+<p>建设个人主页初心就是宣传自己，树立我的个人品牌了，虽然目前人气不是很足，但是</p>
+
+<ol>
+<li><p><a href="http://www.imlongluo.com" title="个人主页">个人主页</a></p></li>
+<li><p><a href="http://longluo.github.io" title="Blog">Github Blog</a></p></li>
+</ol>
+
+
+<p>引用雷才子的话来说，真正学到手的东西，只要没到你临死的那天，都会发挥它的作用。所以我要努力的锻炼身体，让自己活得很长很长。</p>
+
+<p><strong>我就像那棵树，现在起劲的折腾，是不是只是为了让自己那棵树的下限能够再高一点?</strong></p>
+
+<p><strong>生命不息，折腾不止。</strong></p>
+
+<h3>三、可怕的马太效应</h3>
+
+<hr />
+
+<p>圣经《新约·马太福音》中的一则寓言：“<strong>凡有的，还要加给他叫他多余；没有的，连他所有的也要夺过来。</strong>”</p>
+
+<p>作为草根农村出身的人，虽然一路上在省里比较好的高中读书，然后高考还读了一所还不错的大学，我仍然能深深的感觉到即使我们这一代人仍然不能短期明显改变自己的社会地位。</p>
+
+<p>不同起点的高度和所能看到的风景一直在以超乎你想像的力量在影响着你，安排着你。惯性定律讲事物有保持原有状态的性质。我们想改变，但是坏习惯和固有的思维惯性仍然在阻挡着我们。</p>
+
+<p>最近在zhihu上看到一个好答案：</p>
+
+<p>第一，<strong>教育</strong>，农村的教育资源短缺，是显然的，且不说各种好老师好学校的缺乏，关键是教育思路的差距。我以前很不服气，那些人为什么非买北京十万一平的学区房。后来了解了同事孩子的授课内容和教育思路，他们很多孩子已经跳出了应试的思路，高中就开始准备申请国际高校的一些兴趣培养。在农村，我们没有资源，所以不得不用笨办法，每天五六点起来，早自习，而且效果还不好，然后就理解了。</p>
+
+<p>努力确实可以解决很多问题，但是方法也很重要。</p>
+
+<pre><code>注：
+我最近去上了一节吉他课，对此深有感触。好的老师，可以潜移默化，一眼就知道你的问题之所在，让你很短时间掌握要领。
+</code></pre>
+
+<p>这里面也有父母教育的因素，农村的父母大部分一辈子没有出去闯荡过，没有培养孩子格局和知识的意识，只是觉得有饭吃，给交个学费，剩下就看天了。这就像科学种田和靠天吃饭的区别一样。</p>
+
+<p>此外往前几十年，很多80后赶上农村最贫困的时期，甚至没有读完义务教育，这些就更不说了。他们有的很聪明，但是好端端上着课，可能某一天就不来了。不是不想，供养不起了，这就是农村孩子所面对的，如此真实，不只是人们在电视上，报纸上看到的一段黑白文字而已。</p>
+
+<p>第二，<strong>视野和思路</strong>。视野由很多东西决定，知识，见识，胆识，等等。这些东西，在农村都是稀缺资源，谁来给他们提供这些资源？</p>
+
+<p>说到农村孩子偏保守，不敢闯，我有时候也觉得自己有这个问题，可是我仔细一想，为什么不敢闯，也因为你输不起，你要是资源多，有底子，输了就输了，重来罢了。可是如果你只有这一点资源，输了就得回原点，保守其实是较为优化的策略。</p>
+
+<p><strong>资源的稀缺导致了视野和思路的局限。</strong></p>
+
+<p>第三，<strong>社交圈子的资源</strong>。农村的孩子，可能你的朋友圈，大部分都是跟自己类似的农村朋友，平均来说，这是弱弱联手，因为这个圈子资源其实很贫乏。相比较，城市孩子的圈子资源，信息可能更多，比如信息，物质的资源，都不是前者一个等级的。</p>
+
+<p>这也是一个潜在的劣势。</p>
+
+<p>第四，<strong>起点</strong>。家庭物质的帮助，解除了物质之忧，家庭的关系，可以直接获得性价比高的岗位。有些可以抵消优秀农村孩子数年努力，有些甚至是十年以上才能得到。当然，一旦农村孩子奋斗走上去，后劲是更大的，但是如果我们看二十几岁的宏观情况，其实差距还是很明显的，尤其是在当下的中国。</p>
+
+<p>所以，之所以农村孩子不能短期内极大改变社会地位，根源就是马太效应所传达的，资源的短缺，导致更难获得资源。</p>
+
+<hr />
+
+<p>这一节想写很多，但好像也写不出来什么，自己慢慢思考吧，<strong><em>眼界、魄力、思维</em></strong>。</p>
+
+<h3>四、一个人的深圳</h3>
+
+<hr />
+
+<p><strong>一个人的北京</strong></p>
+
+<pre><code> 演唱：好妹妹乐队
+ 词曲：浪客
+
+ 你有多久没有看到 满天的繁星
+ 城市夜晚虚伪的光明 遮住你的眼睛
+ 连周末的电影 也变得不再有趣
+ 疲惫的日子里 有太多的问题
+ 你有多久单身一人 不再去旅行
+ 习惯下班回到家里 冷冰冰的空气
+ 爱情这东西 你已经不再有勇气
+ 情歌有多动听 你就有多怀疑
+ 许多人来来去去 相聚又别离
+ 也有人喝醉哭泣 在一个人的北京
+ 也许我成功失意 慢慢的老去
+ 能不能让我留下片刻的回忆
+ 许多人来来去去 相聚又别离
+ 也有人匆匆逃离 这一个人的北京
+ 也许有一天我们 一起离开这里
+ 离开了这里 在晴朗的天气
+
+
+ 你有多久单身一人 不再去旅行
+ 习惯下班回到家里 冷冰冰的空气
+ 爱情这东西 你已经不再有勇气
+ 情歌有多动听 你就有多怀疑
+ 许多人来来去去 相聚又别离
+ 也有人喝醉哭泣 在一个人的北京
+ 也许我成功失意 慢慢的老去
+ 能不能让我留下片刻的回忆
+ 许多人来来去去 相聚又别离
+ 也有人匆匆逃离 这一个人的北京
+ 也许有一天我们 一起离开这里
+ 离开了这里 在晴朗的天气
+ 许多人来来去去 相聚又别离
+ 也有人匆匆逃离 这一个人的北京
+ 也许有一天我们 一起离开这里
+ 离开了这里 在晴朗的天气
+ 让我拥抱你 在晴朗的天气
+</code></pre>
+
+<p>最近看到王朔在<a href="http://blog.sina.com.cn/s/blog_48d0b6090101fzbw.html" title="走过1314">《走过1314》</a>中写道：</p>
+
+<pre><code> 世界上最悲催的事莫过于你在年轻时没有找到真爱，在你找到真爱时已不再年轻，哦不对！应该是你还没找到真爱就已不再年轻了。
+
+ 这个真爱不仅指的是人，也包括事。成功的人生不就是找个喜欢的人爱、找件喜欢的事做吗？成功如默多克在决定与邓文迪离婚的那一刻应该也不会太享受吧。
+</code></pre>
+
+<h4><strong>To Be Continued&hellip;</strong></h4>
+
+<hr />
+
+<h4><strong><em>Long Luo Version 0.1 at PM22:30~22:50, December 19th, 2013 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Version 1.0 at PM23：05 ~ AM00:05, Jan. 21th, 2013 @Shenzhen, China.</em></strong></h4>
+
+<h3><a href="http://www.imlongluo.com/blog" title="Blog"> My Blog </a></h3>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi/'>http://longluo.github.io/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+]]></content>
+  </entry>
+  
 </feed>

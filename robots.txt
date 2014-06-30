@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: 
+
+Sitemap: http://longluo.github.io/sitemap.xml 

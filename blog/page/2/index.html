@@ -1,0 +1,858 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Long Luo's Develop Notes</title>
+  <meta name="author" content="Frank Luo">
+
+  
+  <meta name="description" content="By Long Luo 题目有点标题党了，因为这是一个非常大的课题，涉及面的东西之多，可以写好几本书了。 这几年，体验了很多App，也亲自写了一些App，最近又去思考了一些东西，在此把自己的一些想法写出来，希望能够抛砖引玉，一起交流一些想法。 1. App是为了解决什么问题？ App, 也就是 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://longluo.github.io/blog/page/2">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Long Luo's Develop Notes" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', '46213499']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+<script type="text/javascript">
+
+<!-- for adding new target="_blank" -->
+function addBlankTargetForLinks() {
+  $('a[href^="http"]').each(function(){
+  	$(this).attr('target', '_blank');
+  });
+}
+
+$(document).bind('DOMNodeInserted', function(event){
+	addBlankTargetForLinks();
+});
+</script>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Long Luo's Develop Notes</a></h1>
+  
+    <h2>这些年来的折腾...</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:longluo.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">首页</a></li>
+  <li><a href="/blog/archives">归档</a></li>
+  <li><a href="/projects">项目</a></li>  
+  <li><a href="/about">关于我</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140412/tips_for_making_a_better_app/">如何设计一个优秀的App?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-12T10:30:39+08:00" pubdate data-updated="true">Apr 12<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140412/tips_for_making_a_better_app/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>题目有点标题党了，因为这是一个<em>非常大的课题，涉及面的东西之多</em>，可以写好几本书了。</p>
+
+<p>这几年，体验了很多App，也亲自写了一些App，最近又去思考了一些东西，在此把自己的一些想法写出来，希望能够抛砖引玉，一起交流一些想法。</p>
+
+<h3>1. App是为了解决什么问题？</h3>
+
+<hr />
+
+<p><strong><em>App</em></strong>, 也就是 <strong><em>应用软件</em></strong>。在PC互联网时代，传统企业顶多爷就是一个IT部分，负责公司内部的关于网络，电脑，OA之类的服务。我们也很难想象，在PC上有大量的企业应用。</p>
+
+<p>2007年随着iPhone的横空出世，带来了一个革命性的变化，宣讲会上Jobs宣称reinvent the Phone。iPhone带来了体验非常好的电容触摸屏，多点触摸，手势操作等一系列技术。之后又带来了App Store，宣告了<strong><em>移动互联网时代的到来</em></strong>。</p>
+
+<p>为了满足消费者的需求，以往运营商和厂商往往<em>困扰于如何作出差异化</em>，之前都是用外壳、屏幕、ID等硬件表现来实现差异化。iPhone实现了一个革命性的突破，<strong>用软件和服务在作出差异化</strong>，通过各种App来实现。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140412/tips_for_making_a_better_app/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140409/android_develop_references/">Android学习资源(持续更新中)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-09T22:26:13+08:00" pubdate data-updated="true">Apr 9<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140409/android_develop_references/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>下面列举一些收藏的资源，用于学习参考：</p>
+
+<h4>1. Android API Guides</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://developer.android.com/guide/components/index.html" title="Android API Guides"><strong>Android</strong> API Guides:</a></li>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=android/reference" title="OSChina Android API Guides"><strong>OSChina</strong> Android API Guides：</a></li>
+</ol>
+
+
+<h4>2. Java Develop Kit References</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=jdk_7u4" title="JDK7 English"><strong>JDK7</strong> English：</a></li>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=jdk-zh" title="JDK6 Chinese API"><strong>JDK6</strong> Chinese API：</a></li>
+</ol>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140409/android_develop_references/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft/">Android App性能优化笔记之一:性能优化是什么及为什么?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-07T14:19:28+08:00" pubdate data-updated="true">Apr 7<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>周星驰的电影《功夫》里面借火云邪神之口说出了一句至理名言：“<strong>天下武功，唯快不破</strong>”。</p>
+
+<p>在移动互联网时代，同样如此，留给一个公司的窗口往往只有很短的时间，如何把握住这个时机，迅速开发出产品，成为至关重要的一环。相对传统互联网时代的PC产品，<strong>用户对移动端产品的容忍度更低</strong>。而一款移动应用在推出的时候可能只是接近完成的状态，这就需要通过<strong>快速的迭代开发来更新产品，不断完善产品来留住用户</strong>。同时，通过更新产品也能唤醒一些沉默用户，让一些原本下载了应用但使用次数非常少的用户给该应用多一次机会。</p>
+
+<p>所以<strong><em>快速迭代</em></strong>成为移动互联网时代的一个重要生存法则。</p>
+
+<h3>1. 为什么需要性能优化？</h3>
+
+<hr />
+
+<p>上面说到，在时间窗口期内开发出产品是极端重要的，但是虽然基本功能我们实现了，但是开发出来的产品代码运行的效率怎么样呢？我们的App用户给用户的体验如何呢？</p>
+
+<ul>
+<li>我们的App在低端机上经常ANR、闪退、卡顿等</li>
+<li>我们的App在其他分辨率上显示惨不忍睹？</li>
+<li>我们的App在不同网络的情况下如何处理的</li>
+<li>&hellip;</li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140407/tips_for_performances_optimization_on_build_an_android_app_draft/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop/">游戏引擎学习笔记:介绍,架构,设计及实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-07T00:17:51+08:00" pubdate data-updated="true">Apr 7<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>从小到大，虽然玩过的游戏不少，但是从写程序开始，目前为此仅仅写过2个游戏。其一是2011年在MTK平台下写的贪食蛇，其二是2010年在嵌入式开发板上写过一个迷宫的游戏。第一个代码量大概有3000行左右，第二个有2000行左右。</p>
+
+<p>这2个游戏都很简单，而且网上有很多现成的例子可供参考，因此难度也比较低。</p>
+
+<p>这2天把拖延了好久的<strong><em>《Android应用开发揭秘》</em></strong>的游戏引擎的那一章看完了，收获还是很大，在此写一篇读书笔记。</p>
+
+<p>关于Game Engine，我能想到的几个问题：</p>
+
+<ol>
+<li>游戏引擎是什么？</li>
+<li>Game Engine是为了解决什么问题？</li>
+<li>Game Engine的架构是什么？</li>
+<li>如何设计一款游戏引擎？</li>
+<li>游戏引擎包含哪些模块？</li>
+</ol>
+
+
+<p>下面就来探讨几个问题：</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140407/Game_Engine_Notes_introducation_architect_design_develop/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao/">学车思考之一:方向盘转多少,车轮就转多少度对吗?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-06T19:43:27+08:00" pubdate data-updated="true">Apr 6<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>最近一个月在驾校学车，前2次去练车，总是<strong><em>不得要领</em></strong>，连曲线行驶开不好，被教练狂K。经历了当学渣的痛苦之后，痛定思痛，立志成为<strong>学霸</strong>。</p>
+
+<h4>1. 面临问题：</h4>
+
+<p>我分析遇到的问题之后，得出我面临的几个问题：</p>
+
+<ol>
+<li>方向盘打法不规范；</li>
+<li>离合器踩的不到位，车速偏快；</li>
+<li>不清楚方向盘转的度数和车轮转的度数关系；</li>
+<li>不记得当前车轮方向。</li>
+</ol>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140406/xue-che-si-kao-zhi-fang-xiang-pan-zhuan-duo-shao/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140215/introduce_a_android_listview_and+gridview_performence_library_smoothie/">介绍一个提高Android ListView或GridView的Smoothie库</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-15T11:41:06+08:00" pubdate data-updated="true">Feb 15<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140215/introduce_a_android_listview_and+gridview_performence_library_smoothie/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>翻译 By Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://lucasr.org/2013/01/06/introducing-smoothie/">Introducing Smoothie</a></h4>
+
+<hr />
+
+<p><img src="http://blogresource.qiniudn.com/2014/Android/smoothie.png" alt="smoothie" /></p>
+
+<p><a href="http://pattrnapp.com/">Pattrn</a> UI中的很大一部分是在滑动时从云端获取图片列表。所以我花了相当长的一段时间去调试，以获得滑动时的体验尽可能的流畅。在过去的几周里，我一直在试图解耦代码，完成了一个很小的库：<a href="https://github.com/lucasr/smoothie">Smoothie</a>。</p>
+
+<p><strong><em>Smoothie</em></strong>提供了一个简单的API来异步加载<em>ListView/GridView</em>的项目，以和UI线程分离。它做了所有你所期望做的事情，加载项目变得可见，取消要求回收的View对应的项目等。但它所完成的还不止这些。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140215/introduce_a_android_listview_and+gridview_performence_library_smoothie/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140214/some_tips_about_android_listview_performence/">提升Android ListView性能的几个技巧</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-14T15:22:10+08:00" pubdate data-updated="true">Feb 14<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140214/some_tips_about_android_listview_performence/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>翻译 Long Luo</em></strong></h4>
+
+<h4>原文链接：<a href="http://lucasr.org/2012/04/05/performance-tips-for-androids-listview/">Performance Tips for Android’s ListView</a></h4>
+
+<pre><code>译者注：
+1. 由于这是技术文章，所以有些词句使用原文，表达更准确。
+2. 由于水平有效，有些地方可能翻译的不够准确，如有不当之处，敬请批评指正；
+3. inflation这个词一直找不到特别好的中文翻译。
+</code></pre>
+
+<h2>ListView如何运作的？</h2>
+
+<hr />
+
+<p><em>ListView</em>是设计应用于对<strong>可扩展性和高性能要求</strong>的地方。实际上，这就意味着<em>ListView</em>有以下2个要求：</p>
+
+<ol>
+<li>尽可能少的创建View；</li>
+<li>只是绘制和布局在屏幕上可见的子View。</li>
+</ol>
+
+
+<p>理解第一点很简单：通过布局xml文件在创建View并显示是很昂贵耗时耗资源的操作。尽管布局文件已经编译打包成了二进制形式以便于更高效的语法解析，但是创建View仍然需要通过一个特殊的XML树，并实例化所有需要响应的View。</p>
+
+<p><em>ListView</em>通过回收一些不可见的Views，通常在Android源码中称为“<em>ScrapView</em>(废弃的View)”来解决这个问题。这及意味着开发者只需要简单的更新每行的内容而不需要针对每个单独的行的布局来创建View。</p>
+
+<p>为了实现第二点，在我们滑动屏幕时，<em>ListView</em>通过使用View回收器来增加低于或者高于当当前窗口的Views，并当前活动的Views移动到一个可回收池中。这样的话，<em>ListView</em>只需要在内存中保持足够多的Views去填充分配空间中的布局和一些额外的可回收Views，即使当你的Adapter有上百个items的适合。它会使用不同的方法去填充行之间的空间，从顶部或者底部等等，具体取决于窗口是如何变化的。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140214/some_tips_about_android_listview_performence/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140210/2014_2013_review/">2014过年反思与总结</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-10T21:52:37+08:00" pubdate data-updated="true">Feb 10<span>th</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140210/2014_2013_review/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p class='post-footer'>original link:<a href='http://longluo.github.io/blog/20140210/2014_2013_review/'>http://longluo.github.io/blog/20140210/2014_2013_review/</a><br/>&nbsp;written by <a href='http://longluo.github.io'>Frank Luo</a>&nbsp;posted at <a href='http://longluo.github.io'>http://longluo.github.io</a></p>
+
+</div>
+  
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140123/android_ui_layout_summay_5_layouts/">Android UI Layout总结系列之篇之5大布局</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-23T20:16:36+08:00" pubdate data-updated="true">Jan 23<span>rd</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140123/android_ui_layout_summay_5_layouts/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>在一个Android应用中，Layout是开发中的一个很重要环节，Layout是组成UI不可缺少的一部分。</p>
+
+<h2>Android UI 核心类</h2>
+
+<hr />
+
+<h4>在Android应用构建UI的方法有以下几种：</h4>
+
+<ol>
+<li>单纯使用JAVA代码</li>
+<li>使用XML完全定义界面</li>
+<li>结合使用两者，在XML中定义，在JAVA中引用和修改</li>
+</ol>
+
+
+<h4>Android SDK中关于UI的核心类：</h4>
+
+<p>Android.view.View和android.view.ViewGroup</p>
+
+<p>android中的常见UI控件均会扩展View和ViewGroup其中有一部分是专门用来控制其子View位置和大小，这些类我们称为布局管理器。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140123/android_ui_layout_summay_5_layouts/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi/">情歌有多动听，你就有多怀疑</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-21T22:41:43+08:00" pubdate data-updated="true">Jan 21<span>st</span>, 2014</time>
+        
+        
+        <!-- For duoshuo -->
+         
+          | <a href="/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi/#comments">Comments</a>
+         
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4><strong><em>By Long Luo</em></strong></h4>
+
+<hr />
+
+<p>最近没怎么写东西的缘故是因为担心自己<strong>看的东西太少，读的东西太少，而想的太多</strong>。2014年的第一月也很快就要过去了，而我还没有对自己过去的一年里做出一点小结，就在这里随便扯几点吧！</p>
+
+<p>比如我的大学好友雷大才子，精通几门外语，学富五车，不仅文章写得好，又懂音乐，还会写诗作画，更是一名勤劳的Blogger，每次看他的博文，总能学到很多东西。</p>
+
+<h3>一、Destiny</h3>
+
+<hr />
+
+<p>年轻的时候我看到网上一些晒东晒西的帖子，总想：“等我到了他那个年纪，应该比TA出色的多吧！”</p>
+
+<p>但在工作了几年之后，我不得不认识到：<strong>和一些人相比，一方面由于家庭草根身份出身的巨大差距，另外一方面之前20多年的积累，导致除非出现巨大的机遇，否则人生绝无逆转的可能</strong>。关于这种巨大的差距，包括<strong>眼界、资源、机遇、圈子</strong>等，在第三节里面我会再认真的阐述。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/20140121/qing-ge-you-duo-dong-ting-ni-jiu-you-duo-huai-yi/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/3/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+ <h1>分类目录</h1>
+ <ul id="categories">
+	 <li class='category'><a href='/blog/categories/algorithm/'>Algorithm (1)</a></li>
+<li class='category'><a href='/blog/categories/android/'>Android (6)</a></li>
+<li class='category'><a href='/blog/categories/app/'>App (2)</a></li>
+<li class='category'><a href='/blog/categories/apple/'>Apple (1)</a></li>
+<li class='category'><a href='/blog/categories/blog/'>Blog (1)</a></li>
+<li class='category'><a href='/blog/categories/design/'>Design (1)</a></li>
+<li class='category'><a href='/blog/categories/drive/'>Drive (1)</a></li>
+<li class='category'><a href='/blog/categories/gameengine/'>GameEngine (1)</a></li>
+<li class='category'><a href='/blog/categories/guitar/'>Guitar (1)</a></li>
+<li class='category'><a href='/blog/categories/life/'>Life (2)</a></li>
+<li class='category'><a href='/blog/categories/resume/'>Resume (1)</a></li>
+<li class='category'><a href='/blog/categories/学习/'>学习 (1)</a></li>
+<li class='category'><a href='/blog/categories/思考/'>思考 (1)</a></li>
+<li class='category'><a href='/blog/categories/性能优化/'>性能优化 (1)</a></li>
+<li class='category'><a href='/blog/categories/手游/'>手游 (1)</a></li>
+<li class='category'><a href='/blog/categories/沉思录/'>沉思录 (1)</a></li>
+<li class='category'><a href='/blog/categories/生活/'>生活 (1)</a></li>
+<li class='category'><a href='/blog/categories/网络编程/'>网络编程 (1)</a></li>
+<li class='category'><a href='/blog/categories/驾驶/'>驾驶 (1)</a></li>
+
+ </ul>
+</section>
+<section>
+  <h1>最新文章</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/20140621/android-audio-play-a-wav-file-on-an-audiotrack/">[译]Android音频: 如何使用AudioTrack播放一个WAV格式文件?</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/20140618/android-performances_case_study/">Android Performances Case Study</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/20140611/how_to_analyse_someone_character_by_his_handwriting/">如何通过笔迹分析一个人的性格?</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/20140605/summary_of_wwdc2014_ios8/">WWDC2014总结之iOS8篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/20140602/ideas_about_2014_auto_show/">我看车展感(tu)想(cao)</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+<!-- Friend Links -->
+<section>
+	<h1>友情链接</h1>
+	<ul>
+		<li>
+			<a href="http://www.imlongluo.com">My Website</a>
+		</li>
+		<li>
+			<a href="http://blog.csdn.net/tcpipstack">My CSDN Blog</a>
+		</li>
+	</ul>
+</section>	
+<section>
+<h1>标签云</h1>
+    <span id="Tag-cloud"></span>
+</ul>
+</section>
+<!-- For Vistors  -->
+<section>
+  <h1>访客地图</h1>
+  <!--获得代码添加到这-->
+  <script type="text/javascript" src="http://jc.revolvermaps.com/2/1.js?i=2pfykd7hd7u&amp;s=220&amp;m=6&amp;v=true&amp;r=false&amp;b=000000&amp;n=false&amp;c=ff0000" async="async"></script>
+</section>
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Frank Luo -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+<!-- For 百度 -->
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Fc30e7d852429942774eb392095960b56' type='text/javascript'%3E%3C/script%3E"));
+</script>
+
+<!--  CNZZ statics -->
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000252835'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s22.cnzz.com/z_stat.php%3Fid%3D1000252835%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script>
+
+</body>
+</html>

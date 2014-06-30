@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 学习 | Long Luo's Develop Notes]]></title>
+  <link href="http://longluo.github.io/blog/categories/xue-xi/atom.xml" rel="self"/>
+  <link href="http://longluo.github.io/"/>
+  <updated>2014-06-22T17:24:59+08:00</updated>
+  <id>http://longluo.github.io/</id>
+  <author>
+    <name><![CDATA[Frank Luo]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Android学习资源(持续更新中)]]></title>
+    <link href="http://longluo.github.io/blog/20140409/android_develop_references/"/>
+    <updated>2014-04-09T22:26:13+08:00</updated>
+    <id>http://longluo.github.io/blog/20140409/android_develop_references</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>下面列举一些收藏的资源，用于学习参考：</p>
+
+<h4>1. Android API Guides</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://developer.android.com/guide/components/index.html" title="Android API Guides"><strong>Android</strong> API Guides:</a></li>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=android/reference" title="OSChina Android API Guides"><strong>OSChina</strong> Android API Guides：</a></li>
+</ol>
+
+
+<h4>2. Java Develop Kit References</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=jdk_7u4" title="JDK7 English"><strong>JDK7</strong> English：</a></li>
+<li><a href="http://tool.oschina.net/apidocs/apidoc?api=jdk-zh" title="JDK6 Chinese API"><strong>JDK6</strong> Chinese API：</a></li>
+</ol>
+
+
+<!--more-->
+
+
+<h4>3. Performances</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://developer.android.com/training/best-performance.html" title="Best Practices for Performance">Best Practices for Performance：</a></li>
+<li><a href="http://www.trinea.cn/android/performance/" title="性能优化系列总篇">性能优化系列总篇</a></li>
+<li><a href="http://www.trinea.cn/android/android-imagecache/">图片ImageCache技术</a></li>
+<li><a href="http://www.trinea.cn/android/android-imagesdcardcache/" title="图片SD卡缓存优化">图片SD卡缓存技术</a></li>
+<li><a href="http://www.trinea.cn/android/database-performance/" title="性能优化之数据库优化">性能优化之数据库优化</a></li>
+<li><a href="http://www.trinea.cn/android/android-http-cache/" title="Android网络缓存">Android网络缓存</a></li>
+</ol>
+
+
+<h4>4. Developing</h4>
+
+<hr />
+
+<ol>
+<li><a href="http://www.importnew.com/3988.html">Android开发者必知的开发资源</a></li>
+<li><a href="http://stackoverflow.com/tags/android/">StackOverFlow@Android</a></li>
+</ol>
+
+
+<h4>5. OpenSource App</h4>
+
+<hr />
+
+<ol>
+<li></li>
+</ol>
+
+
+<h4><strong><em>Long Luo Version0.1 Created at 2014/4/8 10:54:32 @Shenzhen, China.</em></strong></h4>
+
+<h4><strong><em>Long Luo Version0.2 Update at 2014/4/9 19:45:07 @Shenzhen, China.</em></strong></h4>
+]]></content>
+  </entry>
+  
+</feed>

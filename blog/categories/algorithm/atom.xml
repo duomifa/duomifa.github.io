@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Algorithm | Long Luo's Develop Notes]]></title>
+  <link href="http://longluo.github.io/blog/categories/algorithm/atom.xml" rel="self"/>
+  <link href="http://longluo.github.io/"/>
+  <updated>2014-06-22T17:24:59+08:00</updated>
+  <id>http://longluo.github.io/</id>
+  <author>
+    <name><![CDATA[Frank Luo]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[一道有趣的算法题:仿照Excel的列编号,给定一个数字,输出该列编号字符串]]></title>
+    <link href="http://longluo.github.io/blog/20140502/algorithm_excel_row_number_string/"/>
+    <updated>2014-05-02T22:15:57+08:00</updated>
+    <id>http://longluo.github.io/blog/20140502/algorithm_excel_row_number_string</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+
+<p>最近遇到一个算法题：</p>
+
+<p>仿照Excel的列编号，给出一个数字，输出该列编号字符串。</p>
+
+<p>例如：A对应1，Z对应26，AA对应27，AZ对应52 &hellip;&hellip;</p>
+
+<p>这个题目是一个典型的<strong><em>26进制</em></strong>思路去处理，一个整数除26然后但是这个题目里面有很多陷阱，在1, 26, 52等特殊情况进行考虑，经过晚上接近1个小时的编写，完成的代码如下：</p>
+
+<!--more-->
+
+
+<h4><code>C++</code>代码如下所示：</h4>
+
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string.h&gt;
+
+using namespace std;
+
+//函数itos：正整数到编号转换
+//num：输入的正整数，pcout：输出，Max：输出控件最大长度
+void itos(int num, char *pcout )
+{
+    char *res = new char[255];
+    int m = 0, n = 0;
+
+    while((num &gt;= 1) &amp;&amp; (n &lt; 255))
+    {
+        m = num % 26;
+        if (m != 0)
+        {
+            res[n] = 'A' + m - 1;
+        }
+        else
+    {
+            res[n] = 'Z';
+            num--;
+    }
+
+        num /= 26;
+        n++;
+}
+
+    for(m = n; m &gt; 0; m--)
+    {
+        pcout[n - m] = res[m - 1];
+    }
+
+    pcout[n] = '\0';
+    delete[] res;
+
+    return;
+}
+
+//soti：字符串到数字的转换
+int stoi(char *cha)
+{
+ int m = 0, n = 0, i = 0, val = 0, a = 0;
+ char *pc = cha ;
+
+ while(*pc != '\0' )
+{
+      //后移到个位 
+     pc++;
+     n++;
+}
+
+ for(i = 1; i &lt;= n; i++)
+{
+      //位循环
+     pc--;
+     a = i;
+     m = 1;
+
+      while(a &gt; 1)
+     {
+          //位权
+         m *=26;
+         a--;
+     }
+
+     m *= (*pc - 'A' +1);
+     val += m;
+}
+
+ return val;
+}
+
+int main()
+{
+    char out[255] = {0};
+    printf( "out = %s\n", out);
+    itos(32, out);
+    printf( "out = %s\n", out);
+
+    getchar();
+
+    return true ;
+}
+</code></pre>
+
+<h4><code>JAVA</code>代码如下所示：</h4>
+
+<pre><code>package com.Algorithms.excelrow;
+
+/*
+ * @author: Long Luo
+ * @Created By Frank Luo @2014.05.01
+ */
+public class ExcelRow {
+    public static void main(String args[]) {
+
+        System.out.println("25=" + int2Str(5) + ",28=" + int2Str(28) + ",123="
+                + int2Str(123));
+        System.out.println("C=" + str2Int("C") + ",ZA" + str2Int("ZA")
+                + ",AAF=" + str2Int("AAF"));
+    }
+
+    /*
+     * @Description: covert the String to Integer.
+     */
+    public static int str2Int(String input) {
+        int val = 0;
+        int len = input.length();
+        int mul = 0;
+
+        for (int i = len - 1, j = 0; i &gt;= 0; i--, j++) {
+            mul = 1;
+
+            int temp = input.charAt(i) - 'A' + 1;
+            double weiquan = Math.pow(10, j);
+            mul = (int) (temp * weiquan);
+            val += mul;
+
+            System.out.println("temp=" + temp + ",weiquan=" + weiquan + ",mul="
+                    + mul + ",val=" + val);
+        }
+
+        return val;
+    }
+
+    /*
+     * @Description: covert the Integer to String.
+     */
+    public static String int2Str(int rowNum) {
+        StringBuffer temp = new StringBuffer(255);
+        char ch;
+
+        while (rowNum &gt;= 1) {
+
+            int i = rowNum % 26;
+            if (i != 0) {
+                ch = (char) ('A' + i - 1);
+                temp = temp.append(ch);
+            } else {
+                ch = 'Z';
+                temp = temp.append(ch);
+                rowNum--;
+            }
+
+            System.out.println("temp=" + temp + ",ch=" + ch + ",rowNum="
+                    + rowNum);
+            rowNum /= 26;
+        }
+
+        return temp.reverse().toString();
+    }
+
+}
+</code></pre>
+
+<p>以上代码均测试通过。</p>
+
+<p>如有不当错误之处，敬请批评指正，如有更好的方法，也请共同探讨, Thx:&ndash;)</p>
+
+<h4><strong><em>Long Luo Created at PM22:25 ~ 22:40 @May 02nd, 2014 at Shenzhen, China.</em></strong></h4>
+]]></content>
+  </entry>
+  
+</feed>

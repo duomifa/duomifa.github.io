@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 思考 | Long Luo's Develop Notes]]></title>
+  <link href="http://longluo.github.io/blog/categories/si-kao/atom.xml" rel="self"/>
+  <link href="http://longluo.github.io/"/>
+  <updated>2014-06-22T17:24:59+08:00</updated>
+  <id>http://longluo.github.io/</id>
+  <author>
+    <name><![CDATA[Frank Luo]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[2014过年反思与总结]]></title>
+    <link href="http://longluo.github.io/blog/20140210/2014_2013_review/"/>
+    <updated>2014-02-10T21:52:37+08:00</updated>
+    <id>http://longluo.github.io/blog/20140210/2014_2013_review</id>
+    <content type="html"><![CDATA[<h4><strong><em>By Long Luo</em></strong></h4>
+]]></content>
+  </entry>
+  
+</feed>
